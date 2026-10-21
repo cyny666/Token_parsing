@@ -1,0 +1,219 @@
+TARGET: C:\Users\86186\Desktop\work\Token_parsing\token-inspector
+Change: NEW standalone localhost application; inspectToken() JWT/JWE/Opaque/Invalid branches.
+Original repository contained .gitignore and .git, no runnable source. Existing .gitignore unchanged.
+Before creation: Test-Path token-inspector => False; .gitignore SHA256=114f3cdc2057d610cbc810f69cbc4f195acec0cd15dd54e9b154cf5f6657fc24
+Four-role transaction uses source ZIP snapshots; rollback is executed on a separate archive copy only.
+The empty-project baseline is reconstructed from the unchanged original .gitignore; it is not an earlier runnable application.
+Initial environment issues: rtk absent (exit 1); npm offline registry lookups ENOTCACHED (exit 1).
+npm 10.8.2 and isolated npm 10.9.4 install error: Cannot read properties of null (reading 'edgesOut') (exit 1).
+Correction: npm install --legacy-peer-deps --offline=false --cache .npm-cache --no-audit --no-fund (exit 0); subsequent ordinary npm ci also succeeded.
+Sandbox Vite startup error: spawn EPERM (exit 1); correction: approved execution outside sandbox.
+First unit run: 34 passed / 1 failed: rejects invalid input "Bearer "; expected error, received opaque.
+Correction: remove bare Bearer as well as Bearer followed by whitespace. Final exact outputs follow.
+First browser run: Timed out waiting 60000ms from config.webServer. (exit 1). Correction: NO_PROXY for loopback.
+First evidence run: UnicodeEncodeError in Windows GBK stdout on build checkmark (exit 1); corrected runner stdout to UTF-8.
+First rollback run: WindowsApps python3 alias exited 49 without output; corrected interpreter detection to execute a Python 3 probe before selection.
+First patch-reapply check: git apply from repository subdirectory returned 0 but skipped root-relative snapshot.zip; archive hash assertion caught mismatch. Corrected explicit --directory from repository root.
+Review: fixed bare Bearer input; exact hostname matching avoids issuer suffix spoofing; textContent avoids HTML execution; unknown/prototype field names use own-property lookup; stale output cleared on edit.
+Review: claims never determine trust; no network fetch, storage, token logging, clipboard access, or refresh flow in application.
+Visual review: desktop and 390px mobile synthetic-only screenshots inspected; no horizontal page overflow.
+
+[UNIT]
+CWD: C:\Users\86186\Desktop\work\Token_parsing\token-inspector
+COMMAND: ["C:\\nvm4w\\nodejs\\npm.cmd", "test"]
+INPUT: synthetic fixtures only / no real credential
+STDOUT:
+
+> token-inspector@0.1.0 test
+> vitest run
+
+
+ RUN  v4.1.12 C:/Users/86186/Desktop/work/Token_parsing/token-inspector
+
+
+ Test Files  1 passed (1)
+      Tests  35 passed (35)
+   Start at  14:42:05
+   Duration  609ms (transform 85ms, setup 0ms, import 208ms, tests 19ms, environment 0ms)
+
+
+STDERR:
+
+EXIT: 0
+
+[TYPECHECK]
+CWD: C:\Users\86186\Desktop\work\Token_parsing\token-inspector
+COMMAND: ["C:\\nvm4w\\nodejs\\npm.cmd", "run", "typecheck"]
+INPUT: synthetic fixtures only / no real credential
+STDOUT:
+
+> token-inspector@0.1.0 typecheck
+> tsc --noEmit
+
+
+STDERR:
+
+EXIT: 0
+
+[BUILD]
+CWD: C:\Users\86186\Desktop\work\Token_parsing\token-inspector
+COMMAND: ["C:\\nvm4w\\nodejs\\npm.cmd", "run", "build"]
+INPUT: synthetic fixtures only / no real credential
+STDOUT:
+
+> token-inspector@0.1.0 build
+> tsc --noEmit && vite build
+
+vite v8.3.4 building client environment for production...
+transforming...
+✓ 53 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  3.69 kB │ gzip: 1.84 kB
+dist/assets/index-DtRAVmtP.css   5.18 kB │ gzip: 1.71 kB
+dist/assets/index-BmT0zrQc.js   10.20 kB │ gzip: 4.73 kB
+
+✓ built in 212ms
+
+STDERR:
+
+EXIT: 0
+
+[BROWSER]
+CWD: C:\Users\86186\Desktop\work\Token_parsing\token-inspector
+COMMAND: ["C:\\nvm4w\\nodejs\\node.EXE", "node_modules/@playwright/test/cli.js", "test"]
+INPUT: synthetic fixtures only / no real credential
+STDOUT:
+
+Running 2 tests using 1 worker
+
+  ok 1 tests\browser\page.spec.ts:6:1 › offline local page, no credential traffic, safe rendering and state reset (1.1s)
+  ok 2 tests\browser\page.spec.ts:46:1 › mobile layout fits viewport (382ms)
+
+  2 passed (6.9s)
+
+STDERR:
+[WebServer] (node:34444) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] (node:17480) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+
+EXIT: 0
+
+
+[BASELINE]
+CWD: C:\Users\86186\Desktop\work\Token_parsing\.artifacts\token-inspector\baseline
+COMMAND: ["C:\\Users\\86186\\AppData\\Local\\Programs\\Python\\Python312\\python.EXE", "-c", "import zipfile; z=zipfile.ZipFile('snapshot.zip'); print('project=' + ('present' if 'token-inspector/src/core.ts' in z.namelist() else 'absent')); print('existing_gitignore_sha256=' + __import__('hashlib').sha256(z.read('.gitignore')).hexdigest())"]
+INPUT: synthetic fixtures only / no real credential
+STDOUT:
+project=absent
+existing_gitignore_sha256=114f3cdc2057d610cbc810f69cbc4f195acec0cd15dd54e9b154cf5f6657fc24
+
+STDERR:
+
+EXIT: 0
+
+[MODIFIED]
+CWD: C:\Users\86186\Desktop\work\Token_parsing\.artifacts\token-inspector\modified
+COMMAND: ["C:\\Users\\86186\\AppData\\Local\\Programs\\Python\\Python312\\python.EXE", "-c", "import zipfile; z=zipfile.ZipFile('snapshot.zip'); print('project=' + ('present' if 'token-inspector/src/core.ts' in z.namelist() else 'absent')); print('existing_gitignore_sha256=' + __import__('hashlib').sha256(z.read('.gitignore')).hexdigest())"]
+INPUT: synthetic fixtures only / no real credential
+STDOUT:
+project=present
+existing_gitignore_sha256=114f3cdc2057d610cbc810f69cbc4f195acec0cd15dd54e9b154cf5f6657fc24
+
+STDERR:
+
+EXIT: 0
+
+[EXECUTE ROLLBACK]
+CWD: C:\Users\86186\Desktop\work\Token_parsing\.artifacts\token-inspector
+COMMAND: ["E:/Git/bin/bash.exe", "C:\\Users\\86186\\Desktop\\work\\Token_parsing\\.artifacts\\token-inspector\\ROLLBACK.sh", "C:\\Users\\86186\\Desktop\\work\\Token_parsing\\.artifacts\\token-inspector\\rollback-check\\snapshot.zip"]
+INPUT: synthetic fixtures only / no real credential
+STDOUT:
+RESTORED baseline archive SHA256=680ee666c13b638ee34709390011c329d0effc8fa2b8b2763a6e28f37fe11827
+
+STDERR:
+
+EXIT: 0
+
+[ROLLBACK]
+CWD: C:\Users\86186\Desktop\work\Token_parsing\.artifacts\token-inspector\rollback-check
+COMMAND: ["C:\\Users\\86186\\AppData\\Local\\Programs\\Python\\Python312\\python.EXE", "-c", "import zipfile; z=zipfile.ZipFile('snapshot.zip'); print('project=' + ('present' if 'token-inspector/src/core.ts' in z.namelist() else 'absent')); print('existing_gitignore_sha256=' + __import__('hashlib').sha256(z.read('.gitignore')).hexdigest())"]
+INPUT: synthetic fixtures only / no real credential
+STDOUT:
+project=absent
+existing_gitignore_sha256=114f3cdc2057d610cbc810f69cbc4f195acec0cd15dd54e9b154cf5f6657fc24
+
+STDERR:
+
+EXIT: 0
+
+[REAPPLY DIFF]
+CWD: C:\Users\86186\Desktop\work\Token_parsing
+COMMAND: ["E:\\Git\\cmd\\git.EXE", "apply", "--binary", "--directory=.artifacts/token-inspector/rollback-check", "C:\\Users\\86186\\Desktop\\work\\Token_parsing\\.artifacts\\token-inspector\\DIFF_FILE.patch"]
+INPUT: synthetic fixtures only / no real credential
+STDOUT:
+
+STDERR:
+
+EXIT: 0
+
+[REAPPLIED]
+CWD: C:\Users\86186\Desktop\work\Token_parsing\.artifacts\token-inspector\rollback-check
+COMMAND: ["C:\\Users\\86186\\AppData\\Local\\Programs\\Python\\Python312\\python.EXE", "-c", "import zipfile; z=zipfile.ZipFile('snapshot.zip'); print('project=' + ('present' if 'token-inspector/src/core.ts' in z.namelist() else 'absent')); print('existing_gitignore_sha256=' + __import__('hashlib').sha256(z.read('.gitignore')).hexdigest())"]
+INPUT: synthetic fixtures only / no real credential
+STDOUT:
+project=present
+existing_gitignore_sha256=114f3cdc2057d610cbc810f69cbc4f195acec0cd15dd54e9b154cf5f6657fc24
+
+STDERR:
+
+EXIT: 0
+
+SOURCE SHA256 MANIFEST:
+.gitignore 114f3cdc2057d610cbc810f69cbc4f195acec0cd15dd54e9b154cf5f6657fc24
+token-inspector/.gitignore 2f7b905fa6a46b97e99a0dc97da967ecb7b683e91a819fb138f615894fb45cbc
+token-inspector/README.md cdf29b1bcbba047f89d8f45a01ae4766fcb0e009dbd3923a9639f842ed2bb505
+token-inspector/index.html fb94482a561f91d5dbf172f53d2fa4824a206e483d096d8c53c798f6a229cb27
+token-inspector/package-lock.json a6067c65491351fecf5c775fc60432d49a073310dce2efbfce6067476a6ffb64
+token-inspector/package.json 63e5a84ac3a136cad1d99d66158a5ed3e58919d8594368ac1965f83d0ea22ce0
+token-inspector/playwright.config.ts d9d097b8cd8df3f00e712df6a096a4f4e0b23409b78811801c1f3a39b17e37d0
+token-inspector/src/core.ts fbf1225195c2462f1877d0486c5cbd04f2ba52ce09bbdc3b790c576f47812259
+token-inspector/src/main.ts 6c30b2064ba1176c5e5eaab04c8736180c230e12024e2f112388da30de5102f3
+token-inspector/src/providers.ts dcf85cfbe70b9fa825070b6a731f4ccb6db38316f9ed1b56b7808700bda1c3db
+token-inspector/src/style.css 581a4b08368ec79187d6276dd48b9bdf1bd65e140f8f990e19745715e8817e8d
+token-inspector/src/theme.css ca2566d063b53e59597d40ced7ff2f95d716aaa30d45e025d4779ca0f2e0f2ff
+token-inspector/tests/browser/page.spec.ts f92dce5d35b2a09b5e19958acf61dabdfff06422bb692a44d2ea6b508d849ef6
+token-inspector/tests/core.test.ts 87827afc5abc878003532208cc23c7fceaddd90017acbcd31e0c2944fdbc47f2
+token-inspector/tsconfig.json 0d91c426af307ab1349c6fa9d60930a665c18f60a4b2eaecbfeb4bd8f44ee167
+token-inspector/vite.config.ts b36f4bed152ce4ea7741d6a54637700991484885109fec164fcd8ed81b51b088
+token-inspector/vitest.config.ts 2c8c7edc88606b92688de92185d8d25302701ecf2394d104ce9847927caa7d79
+BASELINE_ZIP_SHA256=680ee666c13b638ee34709390011c329d0effc8fa2b8b2763a6e28f37fe11827
+MODIFIED_ZIP_SHA256=285b422d2398c553bc2b806ab950d1ece29799fbc8b014cc4fec30d12b2b722f
+Rollback hash equals baseline; binary patch recreates exact modified ZIP; working project retained unchanged.
+
+USER SAMPLE (redacted output only):
+User-supplied Access Token tested in an ephemeral local browser context.
+Input passed in memory; original credential, personal claims, screenshot, and trace not saved.
+Command: node --input-type=module (script via stdin; credential omitted from this record).
+Operations: open local page, set browser offline, fill input, parse, extract nonpersonal summary, clear, close context.
+STDOUT:
+{
+  "status": "已解码 · 内容未经验证",
+  "algorithm": "RS256",
+  "version": "1.0",
+  "audience": "https://management.core.windows.net/",
+  "scope": "user_impersonation",
+  "issuedUTC": "2026-10-21T06:27:39.000Z",
+  "expiresUTC": "2026-10-21T07:33:21.000Z",
+  "fields": 40,
+  "afterInputRequests": 0,
+  "storageEntries": 0
+}
+{"cleared":true,"detailsHidden":true,"remainingRows":0}
+STDERR: empty
+EXIT: 0
+
+REOPENED C:\Users\86186\Desktop\work\Token_parsing\.artifacts\token-inspector\MODIFIED_FILE.zip bytes=27283 SHA256=285b422d2398c553bc2b806ab950d1ece29799fbc8b014cc4fec30d12b2b722f
+REOPENED C:\Users\86186\Desktop\work\Token_parsing\.artifacts\token-inspector\DIFF_FILE.patch bytes=31421 SHA256=a98fc727d63bc658750dcffa006aac18bf687197f226f088689a803747ab74c9
+REOPENED C:\Users\86186\Desktop\work\Token_parsing\.artifacts\token-inspector\ROLLBACK.sh bytes=3963 SHA256=4f6620324834a242fef9caaac53553cb8fb43fff070d68540e9950b86f5296f5

@@ -1,0 +1,20 @@
+User-supplied Access Token tested in an ephemeral local browser context.
+Input passed in memory; original credential, personal claims, screenshot, and trace not saved.
+Command: node --input-type=module (script via stdin; credential omitted from this record).
+Operations: open local page, set browser offline, fill input, parse, extract nonpersonal summary, clear, close context.
+STDOUT:
+{
+  "status": "已解码 · 内容未经验证",
+  "algorithm": "RS256",
+  "version": "1.0",
+  "audience": "https://management.core.windows.net/",
+  "scope": "user_impersonation",
+  "issuedUTC": "2026-10-21T06:27:39.000Z",
+  "expiresUTC": "2026-10-21T07:33:21.000Z",
+  "fields": 40,
+  "afterInputRequests": 0,
+  "storageEntries": 0
+}
+{"cleared":true,"detailsHidden":true,"remainingRows":0}
+STDERR: empty
+EXIT: 0

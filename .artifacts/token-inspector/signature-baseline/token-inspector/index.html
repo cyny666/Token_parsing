@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+    <title>Token Inspector · 离线解析</title>
+  </head>
+  <body>
+    <div class="shell">
+      <header><a class="brand" href="/">{ <span>JWT</span> } <b>Token Inspector</b></a><span class="local"><i></i> LOCAL · OFFLINE</span></header>
+      <main>
+        <section class="intro"><div class="eyebrow">TOKEN DEBUGGER</div><h1>JSON Web Token <span>解码器</span></h1><p>粘贴即解析。查看原始 JSON，或切换中文字段解释。所有内容仅在浏览器内处理。</p></section>
+        <div class="mode-bar"><span class="active-mode">Decoder <small>解码</small></span><span>不上传 · 不存储 · 不验证签名</span></div>
+        <div class="workspace">
+          <section class="encoded" aria-labelledby="input-title">
+            <div class="section-heading"><h2 id="input-title">Encoded Token <small>编码内容</small></h2><button id="clear" type="button">清空</button></div>
+            <label class="sr-only" for="token">粘贴 Access Token 或 Refresh Token</label>
+            <div class="editor">
+              <pre id="token-colors" aria-hidden="true"></pre>
+              <textarea id="token" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="soft" placeholder="在这里粘贴 Token…&#10;&#10;支持 Bearer 前缀&#10;输入后自动解析"></textarea>
+            </div>
+            <div class="input-meta"><span>最大 64 KiB</span><span id="byte-count">0 B</span></div>
+            <div class="legend"><span class="header-color">● Header</span><span class="payload-color">● Payload</span><span class="signature-color">● Signature</span></div>
+            <div class="status-box"><span id="status" role="status" aria-live="polite">等待输入</span><span class="unverified">签名未验证</span></div>
+            <p class="privacy">解码 ≠ 验证 ≠ 实际可用。Access / Refresh 是用途，不能仅凭格式确定。请勿在共享屏幕时展示真实凭据。</p>
+            <details id="diagnostics" hidden><summary>诊断与声明摘要</summary><div id="summary"></div><ul id="warnings"></ul></details>
+          </section>
+          <section id="details" class="decoded" aria-label="解码结果">
+            <section class="decode-panel header-panel" aria-labelledby="header-title">
+              <div class="section-heading"><h2 id="header-title">Decoded Header <small>头部</small></h2><button id="copy-header" type="button" disabled>复制 Header</button></div>
+              <div class="view-switch" role="group" aria-label="Header 展示方式"><button type="button" data-part="header" data-view="json" aria-pressed="true">JSON</button><button type="button" data-part="header" data-view="claims" aria-pressed="false">字段解释</button></div>
+              <pre id="header-json" class="json-view" aria-label="Header JSON">等待输入 Token</pre>
+              <div id="header-claims" class="claims-view" hidden><table><thead><tr><th>字段 / 值</th><th>中文解释</th></tr></thead><tbody id="header-fields"></tbody></table></div>
+            </section>
+            <section class="decode-panel payload-panel" aria-labelledby="payload-title">
+              <div class="section-heading"><h2 id="payload-title">Decoded Payload <small>载荷</small></h2><button id="copy-payload" type="button" disabled>复制 Payload</button></div>
+              <div class="view-switch" role="group" aria-label="Payload 展示方式"><button type="button" data-part="payload" data-view="json" aria-pressed="true">JSON</button><button type="button" data-part="payload" data-view="claims" aria-pressed="false">字段解释</button></div>
+              <pre id="payload-json" class="json-view" aria-label="Payload JSON">等待输入 Token</pre>
+              <div id="payload-claims" class="claims-view" hidden><table><thead><tr><th>字段 / 值</th><th>中文解释</th></tr></thead><tbody id="payload-fields"></tbody></table></div>
+            </section>
+            <div class="signature-note"><strong>Signature</strong><span>仅展示解码内容，未执行签名验证。</span></div>
+            <p id="copy-status" role="status" aria-live="polite"></p>
+          </section>
+        </div>
+        <footer><span>LOCAL FIRST. ZERO TOKEN UPLOADS.</span><span>JWT / JWE / Opaque · 中文字段解释</span></footer>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

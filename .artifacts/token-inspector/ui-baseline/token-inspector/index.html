@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+    <title>Token Inspector · 离线解析</title>
+  </head>
+  <body>
+    <div class="shell">
+      <header><div class="brand"><span class="brand-icon">T</span> TOKEN INSPECTOR <span class="version">/ LOCAL</span></div><span class="local"><i></i> 浏览器内处理</span></header>
+      <main>
+        <section class="intro"><div class="eyebrow">DEVELOPER WORKSPACE / 01</div><h1>读懂 Token，<span>不传出 Token。</span></h1><p>在本地查看结构、声明与字段含义。支持通用 JWT 和 Microsoft Entra ID。</p></section>
+        <div class="workspace">
+          <section class="card input-card" aria-labelledby="input-title">
+            <div class="section-heading"><h2 id="input-title"><span class="step">01</span> 输入 Token</h2><span class="tag">OFFLINE</span></div>
+            <label for="token">粘贴 Access Token 或 Refresh Token</label>
+            <textarea id="token" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="eyJhbGciOi...&#10;&#10;也支持 Bearer 前缀"></textarea>
+            <div class="input-meta"><span>仅限单个 Token · 最大 64 KiB</span><span id="byte-count">0 B</span></div>
+            <div class="actions"><button id="inspect" class="primary" type="button">解析 Token <span aria-hidden="true">↗</span></button><button id="clear" type="button">清空</button></div>
+            <div class="privacy"><strong>凭据只留在当前页面</strong><p>不上传、不存储、不自动读取剪贴板。请勿在共享屏幕时展示真实凭据。</p></div>
+          </section>
+          <section class="card result-card" aria-labelledby="result-title">
+            <div class="section-heading"><h2 id="result-title"><span class="step">02</span> 解析概览</h2><span class="tag warning">未验证签名</span></div>
+            <p id="status" role="status" aria-live="polite">等待输入</p>
+            <div id="empty" class="empty"><div class="empty-symbol">{ · }</div><h3>从一个 Token 开始</h3><p>解析后查看格式、发行方线索、<br />受众与时间声明。</p><span>解码 ≠ 验证 ≠ 实际可用</span></div>
+            <div id="summary" hidden></div>
+            <div id="diagnostics" hidden><h3>诊断与边界</h3><ul id="warnings"></ul></div>
+          </section>
+        </div>
+        <section id="details" class="card details" hidden>
+          <div class="section-heading"><h2><span class="step">03</span> 字段详情</h2><span class="muted">原始声明 · 非可信身份信息</span></div>
+          <div class="raw-grid"><section><h3>HEADER <span>公开头部</span></h3><pre id="header-json"></pre></section><section><h3>PAYLOAD <span>声明载荷</span></h3><pre id="payload-json"></pre></section></div>
+          <div class="table-scroll"><table><thead><tr><th>字段</th><th>值</th><th>中文解释</th></tr></thead><tbody id="fields"></tbody></table></div>
+        </section>
+        <footer><span>LOCAL FIRST. ZERO TOKEN UPLOADS.</span><span>加密 / 不透明 Token 无法在此读取内部内容。</span></footer>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

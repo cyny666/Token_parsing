@@ -1,0 +1,21 @@
+#!/bin/sh
+set -eu
+if [ "$#" -ne 1 ]; then echo "Usage: ROLLBACK.sh /absolute/path/to/snapshot-copy.zip" >&2; exit 2; fi
+if python3 -c 'import sys; assert sys.version_info.major == 3' >/dev/null 2>&1; then PY=python3
+elif python -c 'import sys; assert sys.version_info.major == 3' >/dev/null 2>&1; then PY=python
+else echo "Python 3 is required" >&2; exit 2; fi
+"$PY" - "$1" <<'PYTHON'
+from pathlib import Path
+import base64, hashlib, os, sys
+target = Path(sys.argv[1]).resolve(strict=True)
+if not target.is_file(): raise SystemExit('Target must be an archive file copy')
+if hashlib.sha256(target.read_bytes()).hexdigest() != '285b422d2398c553bc2b806ab950d1ece29799fbc8b014cc4fec30d12b2b722f':
+    raise SystemExit('Refusing to overwrite an unknown or edited archive')
+original = base64.b64decode('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')
+assert hashlib.sha256(original).hexdigest() == '680ee666c13b638ee34709390011c329d0effc8fa2b8b2763a6e28f37fe11827'
+# Exclusive temporary creation avoids overwriting any adjacent user file.
+temp = target.with_name(target.name + '.rollback-tmp')
+with temp.open('xb') as stream: stream.write(original)
+os.replace(temp, target)
+print('RESTORED baseline archive SHA256=' + hashlib.sha256(target.read_bytes()).hexdigest())
+PYTHON
