@@ -1,0 +1,549 @@
+diff --git a/before-source/token-inspector/README.md b/after-source/token-inspector/README.md
+index 5ee497e..c4f5d7f 100644
+--- a/before-source/token-inspector/README.md
++++ b/after-source/token-inspector/README.md
+@@ -8,7 +8,8 @@
+ 
+ - 提供 Access Token / ID Token / Refresh Token 三个标签页，默认 Access Token；可点击或使用左右方向键、Home / End 切换。
+ - Access 与 ID 复用现有 JWT/JWE/不透明格式处理、中文字段解释与验签能力。ID 入口不新增 nonce、预期受众等用途专属校验；平台字段说明仍是通用知识，不代表适用于所有 ID Token。
+-- Refresh 只展示输入格式与限制提示，不展示解码字段或复制结果、不验签、不下载公钥、不执行刷新或换票请求。
++- Refresh 可实验性解析原始 `1.<描述段>.<不透明载荷>` 的公开描述段：仅版本 1、规范 Base64URL、解码后恰好 40 字节，按 .NET GUID 字节序提取 Tenant ID / Client ID，并匹配已知应用名。显示前缀/尾部 Hex 与不透明载荷字节数，不解释前缀/尾部语义。其他版本、长度或编码异常时停止解释，不尝试套用其他布局。
++- 这来自公开研究的 PRT 样例观察，不是微软保证的通用 RT/PRT 规范；结果始终标为“实验性 / 未验证”，不确认输入真实性、租户身份、用户、权限、有效期或实际可用性。不解析外层 PRT Cookie，不解密载荷、不提供复制结果、不验签、不下载公钥、不执行刷新或换票请求。其他输入保留原有格式/限制提示。
+ - 入口是用户选择的用途，不是工具自动识别或确认的用途；仅凭字符串格式不能确定 Access / ID / Refresh。
+ - 切换到另一入口即清空 Token、手动密钥、结果及内存公钥缓存，取消待执行解析与验签。不会分别保存各入口凭据，不改变已有手动算法选择策略。
+ 
+@@ -48,7 +49,7 @@ npm run preview
+ - Entra ID v1/v2 字段含义解释与取值匹配（amr 认证方法、appidacr/azpacr 客户端认证方式、ver 与发行方格式、消费者租户 GUID、scp/roles 数量、xms_cc cp1、groups overage 等）；发行方识别是未验证的域名线索，不是身份认证。
+ - scp/roles 逐值渲染为权限徽章，常见权限带中文说明，租户级/可提权等高危权限标红；azp/appid 与 aud 匹配已知第一方应用名与 API 名，FOCI/BroCi 客户端一律标红（悬停可见换票原因）。匹配是静态知识表，不代表租户实际授权，也不是身份认证。
+ - 紧凑 JWE 公开 Header 展示，不解密、不验证加密参数或完整性。
+-- 不透明或其他未知 Token 提示限制。Entra Refresh Token 只能由 Microsoft identity platform 读取。
++- 不透明或其他未知 Token 提示限制。Entra Refresh Token 的加密内容只能由 Microsoft identity platform 读取；Refresh 页的公开描述段解析不是密文解密。
+ - 使用本机时钟展示 UTC 时间与声明时间诊断；缺失 exp 不代表永不过期。
+ - 不能仅凭字符串确定 Access / Refresh / ID Token 用途；用途标签页不改变这一限制。不支持 Token 刷新、实际 API 调用或服务端撤销检查。
+ 
+@@ -60,7 +61,8 @@ npm run preview
+ - `src/providers.ts`：普通模块注册的厂商解释器，目前仅 Entra ID；提供全部官方声明的中文解释与常见取值匹配。
+ - `src/permissions.ts`：权限值、第一方客户端 ID、受众静态知识表与匹配规则（来源含 GraphPreConsentExplorer 数据集），提供高危标记。
+ - `src/main.ts`：用途切换、公共输入事件及解析调度；切换即清空状态。
+-- `src/modes/`：Access、ID、Refresh 的独立入口定义；Access / ID 共享底层解析，Refresh 不向展示层传递解码声明。
++- `src/modes/`：Access、ID、Refresh 的独立入口定义；Access / ID 共享底层解析，Refresh 仅传递格式与实验性公开元数据，不传递解码声明。
++- `src/refresh-structure.ts`：实验性描述段布局检查、Base64URL 解码与 .NET GUID 转换；无密文解密或联网功能。
+ - `src/decoder.ts`：共享的解码展示、复制与验签交互；所有不可信字段通过 textContent 渲染，Refresh 模式阻止验签调度。
+ - `src/verification.ts`：基于 jose/Web Crypto 的独立验签、可信微软公钥下载、输入策略与内存缓存。
+ - 页面及 CSS：单页响应式界面，没有后端、路由、数据库或 CDN。
+@@ -80,6 +82,9 @@ npx playwright test
+ 如果本机设置了 HTTP 代理，测试前应将 `127.0.0.1,localhost` 加入 `NO_PROXY`（PowerShell：`$env:NO_PROXY='127.0.0.1,localhost'`），避免本地服务健康检查被转发给代理。
+ 
+ 参考：
++- https://insinuator.net/2026/10/token-theft-in-microsoft-entra-id-part-3-of-4-token-protection/ （研究样例布局，并非通用格式规范）
++- https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-oapxbc/f775b7dc-9638-490b-8d71-a968ef2311bf （PRT 结构为实现细节）
++- https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-oapxbc/8dc82e94-89cf-4f74-96aa-236ce585cd2e （Windows Broker 客户端 ID）
+ - https://learn.microsoft.com/en-us/entra/identity-platform/access-tokens
+ - https://learn.microsoft.com/en-us/entra/identity-platform/refresh-tokens
+ - https://learn.microsoft.com/en-us/graph/permissions-reference
+diff --git a/before-source/token-inspector/index.html b/after-source/token-inspector/index.html
+index c5cb735..2a3b21e 100644
+--- a/before-source/token-inspector/index.html
++++ b/after-source/token-inspector/index.html
+@@ -35,9 +35,14 @@
+             <details id="diagnostics" hidden><summary>诊断与声明摘要</summary><div id="summary"></div><ul id="warnings"></ul></details>
+           </section>
+           <section id="refresh-details" class="refresh-panel" aria-labelledby="refresh-title" hidden>
+-            <h2 id="refresh-title">Refresh Token <small>能力与限制</small></h2>
+-            <p>只展示输入格式与限制提示，不展示解码字段或提供验签。</p>
+-            <p>Entra Refresh Token 只能由 Microsoft identity platform 读取。本工具不解密，也不会向身份平台发送刷新或换票请求。</p>
++            <h2 id="refresh-title">Refresh Token <small>实验性结构解析</small></h2>
++            <p>按研究样例解释原始 <code>1.&lt;描述段&gt;.&lt;不透明载荷&gt;</code> 中的 40 字节公开描述段；不解析外层 PRT Cookie，也不读取密文声明。</p>
++            <p>结果按研究样例推断、未验证，并非微软稳定格式规范。其他版本、长度或编码异常时停止解释。<a href="https://insinuator.net/2026/10/token-theft-in-microsoft-entra-id-part-3-of-4-token-protection/" target="_blank" rel="noopener noreferrer">研究来源</a></p>
++            <section id="refresh-metadata" aria-labelledby="refresh-metadata-title" hidden>
++              <h3 id="refresh-metadata-title">公开描述段 · 未验证</h3>
++              <div class="claims-view"><table><thead><tr><th>字段 / 值</th><th>解释与限制</th></tr></thead><tbody id="refresh-metadata-fields"></tbody></table></div>
++            </section>
++            <p>Entra Refresh Token 的加密内容只能由 Microsoft identity platform 读取。本工具不解密，也不会向身份平台发送刷新或换票请求。</p>
+             <p>选择此入口不代表已确认输入是 Refresh Token；不能据此判断有效期、身份或实际可用性。</p>
+           </section>
+           <section id="details" class="decoded" aria-label="解码结果">
+diff --git a/before-source/token-inspector/src/core.ts b/after-source/token-inspector/src/core.ts
+index 1b472f0..4d0133e 100644
+--- a/before-source/token-inspector/src/core.ts
++++ b/after-source/token-inspector/src/core.ts
+@@ -1,14 +1,16 @@
+ import { decodeJwt, decodeProtectedHeader, base64url } from 'jose';
+ import { identifyProvider } from './providers';
++import type { RefreshStructure } from './refresh-structure';
+ 
+ export const MAX_INPUT_BYTES = 64 * 1024;
+ export interface Field { name: string; value: unknown; description: string }
+ export interface InspectionResult {
+-  format: 'JWT' | 'JWE' | 'Opaque / Unknown' | 'Invalid';
++  format: 'JWT' | 'JWE' | 'Opaque / Unknown' | 'Invalid' | 'Entra RT / PRT（候选结构）';
+   status: 'decoded' | 'encrypted' | 'opaque' | 'error';
+   verification: 'not-performed';
+   header?: Record<string, unknown>;
+   claims?: Record<string, unknown>;
++  refreshStructure?: RefreshStructure;
+   provider: string;
+   evidence: string[];
+   fields: Field[];
+diff --git a/before-source/token-inspector/src/decoder.ts b/after-source/token-inspector/src/decoder.ts
+index 56dec97..b0c20f7 100644
+--- a/before-source/token-inspector/src/decoder.ts
++++ b/after-source/token-inspector/src/decoder.ts
+@@ -1,4 +1,5 @@
+ import { MAX_INPUT_BYTES, type InspectionResult } from './core';
++import type { RefreshStructure } from './refresh-structure';
+ import { clearVerificationCache, verifySignature, type SignatureResult } from './verification';
+ import { audienceNames, clientApp, permissionInfo, roleValues, splitScopes } from './permissions';
+ 
+@@ -89,6 +90,8 @@ export function createDecoder() {
+     revision++;
+     current = undefined;
+     $('diagnostics').hidden = true;
++    $('refresh-metadata').hidden = true;
++    $('refresh-metadata-fields').replaceChildren();
+     for (const id of ['summary', 'warnings', 'header-fields', 'payload-fields', 'copy-status']) $(id).replaceChildren();
+     for (const part of parts) {
+       $(`${part}-json`).textContent = message;
+@@ -104,7 +107,7 @@ export function createDecoder() {
+     const raw = input.value;
+     const prefix = raw.match(/^\s*(?:Bearer\s+)?/i)?.[0] ?? '';
+     const segments = raw.slice(prefix.length).split('.');
+-    if (segments.length === 3 && raw.length <= MAX_INPUT_BYTES) {
++    if (enabled && segments.length === 3 && raw.length <= MAX_INPUT_BYTES) {
+       mirror.append(document.createTextNode(prefix));
+       segments.forEach((segment, index) => {
+         if (index) mirror.append(document.createTextNode('.'));
+@@ -143,10 +146,37 @@ export function createDecoder() {
+     note.textContent = `${label}${critical ? '（重要）' : ''}`;
+     return note;
+   }
++  function renderRefreshStructure(metadata?: RefreshStructure) {
++    const target = $('refresh-metadata-fields');
++    target.replaceChildren();
++    $('refresh-metadata').hidden = !metadata;
++    if (!metadata) return;
++    const rows = [
++      ['version', '版本', metadata.version, '仅支持研究样例版本 1。'],
++      ['descriptor_length', '描述段长度', `${metadata.descriptorBytes} 字节`, '以下偏移均从解码后的描述段第 0 字节计数。'],
++      ['tenant_id', 'Tenant ID', metadata.tenantId, '字节 3–18，按 .NET GUID 字节序解释；租户线索，未验证。'],
++      ['client_id', 'Client ID', metadata.clientId, '字节 19–34，按 .NET GUID 字节序解释；客户端线索，未验证。'],
++      ['client_name', '已知应用名', clientApp(metadata.clientId)?.name ?? '未收录，保留原始 Client ID', '静态 ID 名称匹配，不验证应用身份或权限。'],
++      ['prefix_hex', '前缀（Hex）', metadata.prefixHex, '字节 0–2，保留原始值，不推断其语义。'],
++      ['trailer_hex', '尾部（Hex）', metadata.trailerHex, '字节 35–39，保留原始值，不推断其语义。'],
++      ['opaque_length', '不透明载荷长度', `${metadata.opaqueBytes} 字节`, '仅统计解码后的长度；未解密，不能读取其中声明或有效期。'],
++    ];
++    for (const [field, label, value, description] of rows) {
++      const tr = document.createElement('tr'); tr.dataset.field = field;
++      const td = document.createElement('td');
++      const key = document.createElement('strong'); key.textContent = label;
++      const code = document.createElement('code'); code.textContent = value;
++      td.append(key, code);
++      const note = document.createElement('td'); note.textContent = description;
++      tr.append(td, note); target.append(tr);
++    }
++  }
+   function render(result: InspectionResult) {
+     current = result;
+     $('diagnostics').hidden = false;
+     $('status').textContent = !enabled && result.status !== 'error' ? `格式：${result.format} · 不展示声明` : { decoded: '格式有效 · 已解码', encrypted: '已识别 JWE · 载荷加密', opaque: '不透明或未知格式 · 无法读取内容', error: '未能解析 · 请检查输入' }[result.status];
++    renderRefreshStructure(result.refreshStructure);
++    if (result.refreshStructure) $('status').textContent = '公开描述段已解码 · 实验性 / 未验证';
+     row('格式', result.format);
+     if (enabled) row('发行方线索', result.provider);
+     for (const [key, value] of Object.entries(result.times)) row(`${key} · UTC`, value);
+diff --git a/before-source/token-inspector/src/main.ts b/after-source/token-inspector/src/main.ts
+index 4f049d3..26ca276 100644
+--- a/before-source/token-inspector/src/main.ts
++++ b/after-source/token-inspector/src/main.ts
+@@ -24,9 +24,9 @@ function showMode() {
+   $('refresh-details').hidden = mode.canDecode;
+   $('token-legend').hidden = !mode.canDecode;
+   $('signature-badge').hidden = !mode.canDecode;
+-  $('mode-capability').textContent = mode.canDecode ? '不上传 Token · 解码与验签' : '仅识别格式 · 不刷新或换票';
++  $('mode-capability').textContent = mode.canDecode ? '不上传 Token · 解码与验签' : '实验性结构解码 · 不解密或换票';
+   $('token-label').textContent = `粘贴 ${mode.label}`;
+-  input.placeholder = `在这里粘贴 ${mode.label}…\n\n支持 Bearer 前缀\n${mode.canDecode ? '输入后自动解析' : '仅识别格式，不解密、不验签'}`;
++  input.placeholder = `在这里粘贴 ${mode.label}…\n\n支持 Bearer 前缀\n${mode.canDecode ? '输入后自动解析' : '样例格式：1.<描述段>.<不透明载荷>\n只解码公开结构，不解密、不验签'}`;
+   for (const tab of tabs) {
+     const selected = tab.dataset.purpose === purpose;
+     tab.setAttribute('aria-selected', String(selected));
+diff --git a/before-source/token-inspector/src/modes/refresh.ts b/after-source/token-inspector/src/modes/refresh.ts
+index 1cd3a90..dfecbcc 100644
+--- a/before-source/token-inspector/src/modes/refresh.ts
++++ b/after-source/token-inspector/src/modes/refresh.ts
+@@ -1,7 +1,27 @@
+ import { inspectToken, type InspectionResult } from '../core';
++import { parseRefreshStructure } from '../refresh-structure';
+ import type { TokenMode } from './types';
+ 
+ function inspectRefresh(input: string): InspectionResult {
++  const structure = parseRefreshStructure(input);
++  if (structure.kind !== 'unrecognized') {
++    const result: InspectionResult = {
++      format: 'Opaque / Unknown', status: 'opaque', verification: 'not-performed',
++      provider: '未知 / 未识别', evidence: [], fields: [], times: {},
++      warnings: [
++        '实验性结构解析：按研究样例推断，非微软稳定格式规范；不确认输入是真实 RT 或 PRT。',
++        '只解码公开描述段，不解密载荷、不验签、不刷新或换票；无法据此判断用户身份、权限、有效期或实际可用性。',
++      ],
++    };
++    if (structure.kind === 'matched') {
++      result.format = 'Entra RT / PRT（候选结构）';
++      result.refreshStructure = structure.metadata;
++    } else {
++      if (structure.kind === 'invalid') { result.format = 'Invalid'; result.status = 'error'; }
++      result.warnings.unshift(structure.message);
++    }
++    return result;
++  }
+   const result = inspectToken(input);
+   // Reuse format validation, but never pass decoded credentials to the view.
+   return {
+@@ -21,7 +41,7 @@ function inspectRefresh(input: string): InspectionResult {
+ 
+ export const refreshMode: TokenMode = {
+   label: 'Refresh Token',
+-  description: '用于请求新 Token 的凭据。此入口只识别格式，不执行刷新、换票、解密或验签。',
++  description: '实验性解码 RT/PRT 公开描述段中的租户与客户端 ID；不解密载荷，不执行刷新、换票或验签。',
+   canDecode: false,
+   inspect: inspectRefresh,
+ };
+diff --git a/before-source/token-inspector/src/permissions.ts b/after-source/token-inspector/src/permissions.ts
+index b3eac25..e06d89b 100644
+--- a/before-source/token-inspector/src/permissions.ts
++++ b/after-source/token-inspector/src/permissions.ts
+@@ -150,6 +150,8 @@ export function permissionInfo(value: string): PermissionInfo | undefined {
+ // First-party client IDs verified against the GraphPreConsentExplorer dataset
+ // (name / foci / broci / notes) plus two widely documented Microsoft Graph tool clients.
+ export const CLIENT_APPS: Record<string, ClientAppInfo> = {
++  // MS-OAPXBC Appendix A, note 4: Windows broker client identifier.
++  '38aa3b87-a06d-4817-b275-7a316988d93b': { name: 'Microsoft Authentication Broker' },
+   '04b07795-8ddb-461a-bbee-02f9e1bf7b46': { name: 'Microsoft Azure CLI', note: '常用默认客户端；Graph 预授权权限较多' },
+   '1950a258-227b-4e31-a9cf-717495945fc2': { name: 'Microsoft Azure PowerShell' },
+   '14d82eec-204b-4c2f-b7e8-296a70dab67f': { name: 'Microsoft Graph PowerShell', note: 'Graph 官方 PowerShell SDK 客户端' },
+diff --git a/after-source/token-inspector/src/refresh-structure.ts b/after-source/token-inspector/src/refresh-structure.ts
+new file mode 100644
+index 0000000..60bb237
+--- /dev/null
++++ b/after-source/token-inspector/src/refresh-structure.ts
+@@ -0,0 +1,72 @@
++import { base64url } from 'jose';
++import { MAX_INPUT_BYTES } from './core';
++
++export interface RefreshStructure {
++  version: '1';
++  descriptorBytes: 40;
++  prefixHex: string;
++  tenantId: string;
++  clientId: string;
++  trailerHex: string;
++  opaqueBytes: number;
++}
++
++export type RefreshStructureResult =
++  | { kind: 'matched'; metadata: RefreshStructure }
++  | { kind: 'unsupported' | 'invalid'; message: string }
++  | { kind: 'unrecognized' };
++
++function decodeSegment(value: string): Uint8Array | undefined {
++  if (!/^[A-Za-z0-9_-]+$/.test(value) || value.length % 4 === 1) return;
++  try {
++    const bytes = base64url.decode(value);
++    return base64url.encode(bytes) === value ? bytes : undefined;
++  } catch { return; }
++}
++
++function hex(bytes: Uint8Array): string {
++  return [...bytes].map(value => value.toString(16).padStart(2, '0')).join('');
++}
++
++// .NET GUIDs store the first 4/2/2-byte groups little-endian, not all 16 bytes reversed.
++function dotNetGuid(bytes: Uint8Array): string {
++  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
++  return [
++    view.getUint32(0, true).toString(16).padStart(8, '0'),
++    view.getUint16(4, true).toString(16).padStart(4, '0'),
++    view.getUint16(6, true).toString(16).padStart(4, '0'),
++    hex(bytes.subarray(8, 10)),
++    hex(bytes.subarray(10, 16)),
++  ].join('-');
++}
++
++// Experimental sample layout, NOT a Microsoft-guaranteed RT/PRT protocol:
++// https://insinuator.net/2026/10/token-theft-in-microsoft-entra-id-part-3-of-4-token-protection/
++export function parseRefreshStructure(input: string): RefreshStructureResult {
++  if (new TextEncoder().encode(input).length > MAX_INPUT_BYTES) {
++    return { kind: 'invalid', message: '输入超过 64 KiB，请缩短输入。' };
++  }
++  const token = input.trim().replace(/^Bearer(?:\s+|$)/i, '').trim();
++  if (!token) return { kind: 'unrecognized' };
++  if (/\s/.test(token)) return { kind: 'invalid', message: 'Token 内部含空白，请仅输入单个完整 Token。' };
++  const parts = token.split('.');
++  if (parts.length === 1 || !/^\d+$/.test(parts[0])) return { kind: 'unrecognized' };
++  if (parts.length !== 3) return { kind: 'invalid', message: '候选 RT/PRT 应包含版本、描述段和不透明载荷三段；已停止解释。' };
++  if (parts[0] !== '1') return { kind: 'unsupported', message: '未支持此版本；只按研究样例解释版本 1，已停止解释。' };
++  const descriptor = decodeSegment(parts[1]);
++  if (!descriptor) return { kind: 'invalid', message: '描述段不是规范 Base64URL 编码；已停止解释。' };
++  if (descriptor.length !== 40) return { kind: 'unsupported', message: '描述段长度不为 40 字节，与研究样例布局不符；已停止解释。' };
++  const opaque = decodeSegment(parts[2]);
++  if (!opaque) return { kind: 'invalid', message: '不透明载荷为空或不是规范 Base64URL 编码；已停止解释。' };
++  return {
++    kind: 'matched',
++    metadata: {
++      version: '1', descriptorBytes: 40,
++      prefixHex: hex(descriptor.subarray(0, 3)),
++      tenantId: dotNetGuid(descriptor.subarray(3, 19)),
++      clientId: dotNetGuid(descriptor.subarray(19, 35)),
++      trailerHex: hex(descriptor.subarray(35, 40)),
++      opaqueBytes: opaque.length,
++    },
++  };
++}
+diff --git a/before-source/token-inspector/src/style.css b/after-source/token-inspector/src/style.css
+index b07b7bb..3d9affe 100644
+--- a/before-source/token-inspector/src/style.css
++++ b/after-source/token-inspector/src/style.css
+@@ -18,6 +18,7 @@ h1 span { color: #727785; font-size: 25px; font-weight: 400; margin-left: 7px; }
+ #purpose-title { color: inherit; font-size: inherit; font-weight: inherit; margin-left: 0; }
+ .refresh-panel { padding: 20px; border: 1px solid #e2e4eb; border-radius: 6px; background: #fcfcfe; color: #626a79; }
+ .refresh-panel p { overflow-wrap: anywhere; }
++#refresh-metadata .claims-view { max-height: none; }
+ small { font-weight: 400; color: #7e8390; font-size: 11px; margin-left: 8px; }
+ .workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 30px; align-items: start; }
+ .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+diff --git a/after-source/token-inspector/tests/browser/refresh-structure.spec.ts b/after-source/token-inspector/tests/browser/refresh-structure.spec.ts
+new file mode 100644
+index 0000000..7b376bf
+--- /dev/null
++++ b/after-source/token-inspector/tests/browser/refresh-structure.spec.ts
+@@ -0,0 +1,115 @@
++import { test, expect } from '@playwright/test';
++import { base64url } from 'jose';
++import { brokerId, descriptor, opaqueText, refreshFixture, tenantId } from '../fixtures/refresh-structure';
++
++test('Refresh displays only experimental public metadata without network, claims, signature or copies', async ({ page }) => {
++  const external: string[] = [];
++  const errors: string[] = [];
++  page.on('pageerror', error => errors.push(error.message));
++  await page.route('**/*', route => {
++    if (new URL(route.request().url()).hostname === '127.0.0.1') return route.continue();
++    external.push(route.request().url());
++    return route.abort();
++  });
++  await page.goto('/');
++  await page.locator('#tab-refresh').click();
++  await page.context().setOffline(true);
++  await page.locator('#token').fill(`Bearer ${refreshFixture()}`);
++  await expect(page.locator('#status')).toHaveText('公开描述段已解码 · 实验性 / 未验证');
++  await expect(page.locator('#refresh-metadata')).toBeVisible();
++  await expect(page.locator('#refresh-metadata-fields tr')).toHaveCount(8);
++  await expect(page.locator('[data-field="tenant_id"] code')).toHaveText(tenantId);
++  await expect(page.locator('[data-field="client_id"] code')).toHaveText(brokerId);
++  await expect(page.locator('[data-field="client_name"] code')).toHaveText('Microsoft Authentication Broker');
++  await expect(page.locator('[data-field="prefix_hex"] code')).toHaveText('010100');
++  await expect(page.locator('[data-field="trailer_hex"] code')).toHaveText('0000000000');
++  await expect(page.locator('#refresh-metadata')).toContainText('未解密');
++  await expect(page.locator('#refresh-metadata')).not.toContainText(opaqueText);
++  await expect(page.locator('#details')).toBeHidden();
++  await expect(page.locator('#signature-status')).toBeHidden();
++  await expect(page.locator('#signature-status')).toHaveText('签名未验证');
++  await expect(page.locator('#copy-header')).toBeHidden();
++  await expect(page.locator('#copy-payload')).toBeDisabled();
++  await expect(page.locator('#header-fields')).toHaveText('');
++  await expect(page.locator('#payload-fields')).toHaveText('');
++  await expect(page.locator('#token-colors .token-segment')).toHaveCount(0);
++  await page.waitForTimeout(400);
++  expect(external).toEqual([]);
++  expect(errors).toEqual([]);
++  expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
++  await page.screenshot({ path: 'test-results/refresh-structure-desktop.png', fullPage: true });
++  await page.setViewportSize({ width: 320, height: 740 });
++  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
++  await page.screenshot({ path: 'test-results/refresh-structure-mobile.png', fullPage: true });
++});
++
++test('unsupported layouts and malformed input remove old metadata instead of guessing', async ({ page }) => {
++  await page.goto('/');
++  await page.locator('#tab-refresh').click();
++  for (const [value, message] of [
++    [refreshFixture('2'), '未支持此版本'],
++    [refreshFixture('1', descriptor.subarray(0, 39)), '长度不为 40'],
++    ['1.@@@.AA', '不是规范 Base64URL'],
++    ['x'.repeat(65537), '64 KiB'],
++  ]) {
++    await page.locator('#token').fill(refreshFixture());
++    await expect(page.locator('#refresh-metadata')).toBeVisible();
++    await page.locator('#token').fill(value);
++    await expect(page.locator('#refresh-metadata')).toBeHidden();
++    await expect(page.locator('#refresh-metadata-fields tr')).toHaveCount(0);
++    await expect(page.locator('#warnings')).toContainText(message);
++    await expect(page.locator('#refresh-details')).not.toContainText(tenantId);
++  }
++  await page.locator('#token').fill(refreshFixture());
++  await expect(page.locator('#refresh-metadata')).toBeVisible();
++  await page.locator('#token').fill('opaque-example');
++  await expect(page.locator('#status')).toContainText('Opaque / Unknown');
++  await expect(page.locator('#refresh-metadata-fields tr')).toHaveCount(0);
++});
++
++test('clear, tab switches and pending parsing never restore or leak descriptor fields', async ({ page }) => {
++  await page.goto('/');
++  await page.locator('#tab-refresh').click();
++  await page.locator('#token').fill(refreshFixture());
++  await expect(page.locator('#refresh-metadata')).toBeVisible();
++  await page.locator('#clear').click();
++  await expect(page.locator('#token')).toHaveValue('');
++  await expect(page.locator('#refresh-metadata-fields')).toHaveText('');
++  await expect(page.locator('#refresh-metadata')).toBeHidden();
++  await page.evaluate(value => {
++    const input = document.getElementById('token') as HTMLTextAreaElement;
++    input.value = value;
++    input.dispatchEvent(new Event('input'));
++    document.getElementById('tab-id')!.click();
++  }, refreshFixture());
++  await page.waitForTimeout(400);
++  await expect(page.locator('#status')).toHaveText('等待输入');
++  await expect(page.locator('#token')).toHaveValue('');
++  await expect(page.locator('#refresh-metadata-fields')).toHaveText('');
++  await page.locator('#tab-refresh').click();
++  await page.locator('#token').fill(refreshFixture());
++  await expect(page.locator('#refresh-metadata')).toBeVisible();
++  await page.locator('#tab-access').click();
++  await expect(page.locator('#refresh-metadata-fields')).toHaveText('');
++  await expect(page.locator('#payload-json')).not.toContainText(tenantId);
++  await page.locator('#tab-refresh').click();
++  await expect(page.locator('#refresh-metadata')).toBeHidden();
++});
++
++test('unknown clients stay unknown and JWT or HTML input is not interpreted as descriptor metadata', async ({ page }) => {
++  await page.goto('/');
++  await page.locator('#tab-refresh').click();
++  const unknown = descriptor.slice(); unknown.fill(0, 19, 35);
++  await page.locator('#token').fill(refreshFixture('1', unknown));
++  await expect(page.locator('[data-field="client_name"] code')).toContainText('未收录');
++  await expect(page.locator('[data-field="client_id"] code')).toHaveText('00000000-0000-0000-0000-000000000000');
++  const cookie = `${base64url.encode('{"alg":"HS256","kdf_ver":2}')}.${base64url.encode(JSON.stringify({ refresh_token: refreshFixture() }))}.AA`;
++  await page.locator('#token').fill(cookie);
++  await expect(page.locator('#status')).toContainText('格式：JWT');
++  await expect(page.locator('#refresh-metadata')).toBeHidden();
++  await expect(page.locator('#payload-json')).not.toContainText(tenantId);
++  await page.locator('#token').fill('1.<img src=x onerror=alert(1)>.AA');
++  await expect(page.locator('#status')).toContainText('未能解析');
++  await expect(page.locator('#refresh-details img')).toHaveCount(0);
++  await expect(page.locator('#refresh-metadata-fields tr')).toHaveCount(0);
++});
+diff --git a/after-source/token-inspector/tests/fixtures/refresh-structure.ts b/after-source/token-inspector/tests/fixtures/refresh-structure.ts
+new file mode 100644
+index 0000000..36adbc6
+--- /dev/null
++++ b/after-source/token-inspector/tests/fixtures/refresh-structure.ts
+@@ -0,0 +1,14 @@
++import { base64url } from 'jose';
++
++// Synthetic envelope: known GUID bytes, arbitrary prefix/trailer and a NON-secret fake payload.
++// IDs are fixed public sample values; no real RT/PRT or key is used.
++export const tenantId = '1ce8c5a4-782d-4bef-b3a5-6e7e51a795f9';
++export const brokerId = '38aa3b87-a06d-4817-b275-7a316988d93b';
++export const descriptor = Uint8Array.from(
++  '010100a4c5e81c2d78ef4bb3a56e7e51a795f9873baa386da01748b2757a316988d93b0000000000'.match(/../g)!,
++  value => parseInt(value, 16),
++);
++export const opaqueText = 'SYNTHETIC_OPAQUE_NOT_REAL';
++export function refreshFixture(version = '1', bytes = descriptor): string {
++  return `${version}.${base64url.encode(bytes)}.${base64url.encode(opaqueText)}`;
++}
+diff --git a/after-source/token-inspector/tests/refresh-structure.test.ts b/after-source/token-inspector/tests/refresh-structure.test.ts
+new file mode 100644
+index 0000000..87202cc
+--- /dev/null
++++ b/after-source/token-inspector/tests/refresh-structure.test.ts
+@@ -0,0 +1,89 @@
++import { describe, expect, it } from 'vitest';
++import { base64url } from 'jose';
++import { MAX_INPUT_BYTES, inspectToken } from '../src/core';
++import { modes } from '../src/modes';
++import { parseRefreshStructure } from '../src/refresh-structure';
++import { brokerId, descriptor, opaqueText, refreshFixture, tenantId } from './fixtures/refresh-structure';
++
++describe('experimental RT/PRT public descriptor', () => {
++  it('decodes exact offsets and .NET GUID byte order, not the opaque payload', () => {
++    const result = parseRefreshStructure(refreshFixture());
++    expect(result).toEqual({
++      kind: 'matched',
++      metadata: {
++        version: '1', descriptorBytes: 40, prefixHex: '010100', tenantId, clientId: brokerId,
++        trailerHex: '0000000000', opaqueBytes: new TextEncoder().encode(opaqueText).length,
++      },
++    });
++    expect(JSON.stringify(result)).not.toContain(opaqueText);
++    expect(JSON.stringify(result)).not.toContain(base64url.encode(opaqueText));
++  });
++
++  it('supports trimmed inputs and Bearer without modifying or uploading them', () => {
++    const value = refreshFixture();
++    expect(parseRefreshStructure(` \n bEaReR ${value} \r\n`)).toEqual(parseRefreshStructure(value));
++  });
++
++  it.each(['0', '2', '01', '999'])('does not infer fields for unsupported version %s', version => {
++    expect(parseRefreshStructure(refreshFixture(version))).toMatchObject({ kind: 'unsupported' });
++    expect(modes.refresh.inspect(refreshFixture(version)).refreshStructure).toBeUndefined();
++  });
++
++  it.each([1, 16, 39, 41, 48])('stops interpretation for %s descriptor bytes', length => {
++    const result = parseRefreshStructure(refreshFixture('1', new Uint8Array(length)));
++    expect(result).toMatchObject({ kind: 'unsupported' });
++    expect('metadata' in result).toBe(false);
++  });
++
++  const segment = base64url.encode(descriptor);
++  it.each([
++    ['empty descriptor', '1..AA'], ['illegal alphabet', '1.@@@.AA'],
++    ['padded descriptor', `1.${segment}==.AA`], ['noncanonical bits', `1.${segment.slice(0, -1)}B.AA`],
++    ['empty payload', `1.${segment}.`], ['illegal payload', `1.${segment}.??`],
++    ['noncanonical payload', `1.${segment}.AB`], ['missing segment', `1.${segment}`],
++    ['extra segment', `1.${segment}.AA.AA`], ['internal space', `1.${segment}.A A`],
++  ])('rejects %s without exposing partial IDs', (_label, value) => {
++    const parsed = parseRefreshStructure(value);
++    expect(parsed).toMatchObject({ kind: 'invalid' });
++    const result = modes.refresh.inspect(value);
++    expect(result.status).toBe('error');
++    expect(result.refreshStructure).toBeUndefined();
++    expect(result.fields).toEqual([]);
++  });
++
++  it('enforces the UTF-8 byte limit before decoding', () => {
++    for (const value of ['x'.repeat(MAX_INPUT_BYTES + 1), 'é'.repeat(MAX_INPUT_BYTES / 2 + 1)]) {
++      expect(parseRefreshStructure(value)).toMatchObject({ kind: 'invalid', message: expect.stringContaining('64 KiB') });
++    }
++  });
++
++  it.each(['', 'Bearer ', 'opaque-example', 'abc.def.ghi'])('leaves other inputs to existing classification: %s', value => {
++    expect(parseRefreshStructure(value)).toMatchObject({ kind: 'unrecognized' });
++    expect(modes.refresh.inspect(value).refreshStructure).toBeUndefined();
++  });
++
++  it('does not interpret an outer JWT/PRT Cookie or change Access/ID decoding', () => {
++    const cookie = `${base64url.encode('{"alg":"HS256","kdf_ver":2}')}.${base64url.encode(JSON.stringify({ refresh_token: refreshFixture() }))}.AA`;
++    expect(parseRefreshStructure(cookie)).toMatchObject({ kind: 'unrecognized' });
++    expect(modes.refresh.inspect(cookie).refreshStructure).toBeUndefined();
++    expect(modes.refresh.inspect(cookie).claims).toBeUndefined();
++    for (const purpose of ['access', 'id'] as const) {
++      expect(modes[purpose].inspect(refreshFixture())).toEqual(inspectToken(refreshFixture()));
++    }
++  });
++
++  it('keeps matched structure separate from verified identity, claims and lifetime', () => {
++    const result = modes.refresh.inspect(refreshFixture());
++    expect(result.format).toBe('Entra RT / PRT（候选结构）');
++    expect(result.status).toBe('opaque');
++    expect(result.verification).toBe('not-performed');
++    expect(result.refreshStructure?.tenantId).toBe(tenantId);
++    expect(result.header).toBeUndefined();
++    expect(result.claims).toBeUndefined();
++    expect(result.fields).toEqual([]);
++    expect(result.times).toEqual({});
++    expect(result.warnings.join(' ')).toMatch(/实验性/);
++    expect(result.warnings.join(' ')).toMatch(/不解密/);
++    expect(result.warnings.join(' ')).toMatch(/不确认/);
++  });
++});

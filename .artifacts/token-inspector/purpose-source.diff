@@ -1,0 +1,1010 @@
+diff --git a/before-source/token-inspector/README.md b/after-source/token-inspector/README.md
+index e4aae7f..5ee497e 100644
+--- a/before-source/token-inspector/README.md
++++ b/after-source/token-inspector/README.md
+@@ -4,13 +4,21 @@
+ 
+ 界面参考 jwt.io 的解码器布局：左侧 Encoded Token，右侧 Decoded Header / Payload。输入后自动解析，JWT 三段分别着色；右侧支持 JSON 高亮与中文字段解释切换，以及点击复制 Header / Payload。复制内容会进入系统剪贴板，清空页面不会清除系统剪贴板。摘要与诊断位于输入区下方的折叠面板。
+ 
++## 用途入口
++
++- 提供 Access Token / ID Token / Refresh Token 三个标签页，默认 Access Token；可点击或使用左右方向键、Home / End 切换。
++- Access 与 ID 复用现有 JWT/JWE/不透明格式处理、中文字段解释与验签能力。ID 入口不新增 nonce、预期受众等用途专属校验；平台字段说明仍是通用知识，不代表适用于所有 ID Token。
++- Refresh 只展示输入格式与限制提示，不展示解码字段或复制结果、不验签、不下载公钥、不执行刷新或换票请求。
++- 入口是用户选择的用途，不是工具自动识别或确认的用途；仅凭字符串格式不能确定 Access / ID / Refresh。
++- 切换到另一入口即清空 Token、手动密钥、结果及内存公钥缓存，取消待执行解析与验签。不会分别保存各入口凭据，不改变已有手动算法选择策略。
++
+ ## 自动验签
+ 
+ - 默认自动模式：全球云 Entra v1/v2 的 RS256 JWT 根据精确发行方格式和 `kid` 自动下载微软 JWKS，并在本地验签。仅 GET `https://login.microsoftonline.com/{tenant}/discovery/keys` 或 `.../discovery/v2.0/keys`；不携带 Token、Authorization、Cookie 或 Referrer，不跟随重定向。
+ - 此模式需要联网。微软可见本机 IP 和公开发行方租户 ID。网络/CORS/超时或缺少匹配公钥时显示“未验证”，不伪报“签名不匹配”。其他发行方和主权云请使用手动模式，不访问 Token 内的 `jku`、`x5u` 或任意发行方地址。
+ - 手动密钥模式完全离线：输入可信 SPKI PEM 公钥、X.509 证书或公开 JWK/JWKS；不接受私钥。也支持 HS256/384/512 原文或 Base64 共享密钥，按算法要求至少 32/48/64 字节。算法需独立选择，不能由 Token 自动降低验签策略。
+ - 支持 RS256/384/512、PS256/384/512、ES256/384/512、EdDSA 与 HS256/384/512。浏览器须支持所选 Web Crypto 算法。
+-- 输入 Token、密钥、算法变化后自动验签；无须点击验证按钮。清空时移除 Token、密钥及内存公钥缓存。异步旧结果不会覆盖新输入。
++- Access / ID 入口输入 Token、密钥、算法变化后自动验签；无须点击验证按钮。清空或切换入口时移除 Token、密钥及内存公钥缓存。异步旧结果不会覆盖新输入；Refresh 入口禁用验签。
+ - 仅做签名/MAC 匹配，不等于完整 Token 有效性验证：过期时间单独显示，不校验预期发行方/受众、撤销或 API 权限。手动密钥来源、证书信任链需自行确认。自动模式从已知微软来源取公钥，但不将其等同于完整租户授权验证。
+ - 公钥仅在页面内存缓存 5 分钟，最多 8 个发行方。若密钥轮换造成找不到 `kid`，清空页面后重试可重新取公钥。不在磁盘存储 Token、共享密钥或公钥缓存。
+ 
+@@ -42,7 +50,7 @@ npm run preview
+ - 紧凑 JWE 公开 Header 展示，不解密、不验证加密参数或完整性。
+ - 不透明或其他未知 Token 提示限制。Entra Refresh Token 只能由 Microsoft identity platform 读取。
+ - 使用本机时钟展示 UTC 时间与声明时间诊断；缺失 exp 不代表永不过期。
+-- 不能仅凭字符串确定 Access / Refresh / ID Token 用途。不支持 Token 刷新、实际 API 调用或服务端撤销检查。
++- 不能仅凭字符串确定 Access / Refresh / ID Token 用途；用途标签页不改变这一限制。不支持 Token 刷新、实际 API 调用或服务端撤销检查。
+ 
+ 不上传 Token、不自动读取剪贴板、不记录凭据、不使用 localStorage/sessionStorage、无历史记录或外部脚本。自动验签仅下载公开微软密钥；切换手动模式可完全离线。清空按钮移除页面输入与结果，但不承诺擦除浏览器进程内存；请使用可信本机与浏览器，警惕浏览器扩展和共享屏幕。
+ 
+@@ -51,7 +59,9 @@ npm run preview
+ - `src/core.ts`：格式分类、jose 解码、时间诊断、统一 `InspectionResult`。
+ - `src/providers.ts`：普通模块注册的厂商解释器，目前仅 Entra ID；提供全部官方声明的中文解释与常见取值匹配。
+ - `src/permissions.ts`：权限值、第一方客户端 ID、受众静态知识表与匹配规则（来源含 GraphPreConsentExplorer 数据集），提供高危标记。
+-- `src/main.ts`：页面交互；所有不可信字段通过 textContent 渲染。
++- `src/main.ts`：用途切换、公共输入事件及解析调度；切换即清空状态。
++- `src/modes/`：Access、ID、Refresh 的独立入口定义；Access / ID 共享底层解析，Refresh 不向展示层传递解码声明。
++- `src/decoder.ts`：共享的解码展示、复制与验签交互；所有不可信字段通过 textContent 渲染，Refresh 模式阻止验签调度。
+ - `src/verification.ts`：基于 jose/Web Crypto 的独立验签、可信微软公钥下载、输入策略与内存缓存。
+ - 页面及 CSS：单页响应式界面，没有后端、路由、数据库或 CDN。
+ 
+diff --git a/before-source/token-inspector/index.html b/after-source/token-inspector/index.html
+index 8a03428..c5cb735 100644
+--- a/before-source/token-inspector/index.html
++++ b/after-source/token-inspector/index.html
+@@ -11,22 +11,35 @@
+     <div class="shell">
+       <header><a class="brand" href="/">{ <span>JWT</span> } <b>Token Inspector</b></a><span class="local"><i></i> LOCAL PROCESSING</span></header>
+       <main>
+-        <section class="intro"><div class="eyebrow">TOKEN DEBUGGER</div><h1>JSON Web Token <span>解码器</span></h1><p>粘贴即解析。查看原始 JSON，或切换中文字段解释。所有内容仅在浏览器内处理。</p></section>
+-        <div class="mode-bar"><span class="active-mode">Decoder <small>解码与验签</small></span><span>不上传 Token · 自动验签</span></div>
+-        <div class="workspace">
++        <section class="intro"><div class="eyebrow">TOKEN DEBUGGER</div><h1><span id="purpose-title">Access Token</span> <span>诊断工具</span></h1><p id="purpose-description">用于访问 API 的凭据。查看可解码声明与签名匹配结果，不代表 API 实际授权成功。</p></section>
++        <div class="mode-bar">
++          <div class="purpose-tabs" role="tablist" aria-label="Token 用途">
++            <button id="tab-access" type="button" role="tab" data-purpose="access" aria-controls="purpose-panel" aria-selected="true">Access Token</button>
++            <button id="tab-id" type="button" role="tab" data-purpose="id" aria-controls="purpose-panel" aria-selected="false" tabindex="-1">ID Token</button>
++            <button id="tab-refresh" type="button" role="tab" data-purpose="refresh" aria-controls="purpose-panel" aria-selected="false" tabindex="-1">Refresh Token</button>
++          </div>
++          <span id="mode-capability">不上传 Token · 解码与验签</span>
++        </div>
++        <div id="purpose-panel" class="workspace" role="tabpanel" aria-labelledby="tab-access">
+           <section class="encoded" aria-labelledby="input-title">
+             <div class="section-heading"><h2 id="input-title">Encoded Token <small>编码内容</small></h2><button id="clear" type="button">清空</button></div>
+-            <label class="sr-only" for="token">粘贴 Access Token 或 Refresh Token</label>
++            <label id="token-label" class="sr-only" for="token">粘贴 Access Token</label>
+             <div class="editor">
+               <pre id="token-colors" aria-hidden="true"></pre>
+               <textarea id="token" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="soft" placeholder="在这里粘贴 Token…&#10;&#10;支持 Bearer 前缀&#10;输入后自动解析"></textarea>
+             </div>
+             <div class="input-meta"><span>最大 64 KiB</span><span id="byte-count">0 B</span></div>
+-            <div class="legend"><span class="header-color">● Header</span><span class="payload-color">● Payload</span><span class="signature-color">● Signature</span></div>
++            <div id="token-legend" class="legend"><span class="header-color">● Header</span><span class="payload-color">● Payload</span><span class="signature-color">● Signature</span></div>
+             <div class="status-box"><span id="status" role="status" aria-live="polite">等待输入</span><span id="signature-badge" class="unverified">签名未验证</span></div>
+-            <p class="privacy">解码 ≠ 验证 ≠ 实际可用。Access / Refresh 是用途，不能仅凭格式确定。请勿在共享屏幕时展示真实凭据。</p>
++            <p class="privacy">解码 ≠ 验证 ≠ 实际可用。Access / ID / Refresh 是你选择的用途，不代表工具已确认用途。切换入口会清空 Token、密钥与结果。请勿在共享屏幕时展示真实凭据。</p>
+             <details id="diagnostics" hidden><summary>诊断与声明摘要</summary><div id="summary"></div><ul id="warnings"></ul></details>
+           </section>
++          <section id="refresh-details" class="refresh-panel" aria-labelledby="refresh-title" hidden>
++            <h2 id="refresh-title">Refresh Token <small>能力与限制</small></h2>
++            <p>只展示输入格式与限制提示，不展示解码字段或提供验签。</p>
++            <p>Entra Refresh Token 只能由 Microsoft identity platform 读取。本工具不解密，也不会向身份平台发送刷新或换票请求。</p>
++            <p>选择此入口不代表已确认输入是 Refresh Token；不能据此判断有效期、身份或实际可用性。</p>
++          </section>
+           <section id="details" class="decoded" aria-label="解码结果">
+             <section class="decode-panel header-panel" aria-labelledby="header-title">
+               <div class="section-heading"><h2 id="header-title">Decoded Header <small>头部</small></h2><button id="copy-header" type="button" disabled>复制 Header</button></div>
+diff --git a/after-source/token-inspector/src/decoder.ts b/after-source/token-inspector/src/decoder.ts
+new file mode 100644
+index 0000000..65eacc3
+--- /dev/null
++++ b/after-source/token-inspector/src/decoder.ts
+@@ -0,0 +1,251 @@
++import { MAX_INPUT_BYTES, type InspectionResult } from './core';
++import { clearVerificationCache, verifySignature, type SignatureResult } from './verification';
++import { audienceNames, clientApp, permissionInfo, roleValues, splitScopes } from './permissions';
++
++export function createDecoder() {
++  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
++  const input = $<HTMLTextAreaElement>('token');
++  const parts = ['header', 'payload'] as const;
++  type Part = typeof parts[number];
++  let current: InspectionResult | undefined;
++  let enabled = true;
++  let revision = 0;
++  let verificationRevision = 0;
++  let verificationTimer: ReturnType<typeof setTimeout> | undefined;
++  let verificationRequest: AbortController | undefined;
++  const keyInput = $<HTMLTextAreaElement>('verification-key');
++
++  function resetSignature() {
++    verificationRevision++;
++    clearTimeout(verificationTimer);
++    verificationRequest?.abort();
++    $('signature-status').textContent = '签名未验证';
++    $('signature-status').dataset.state = 'idle';
++    $('signature-badge').textContent = '签名未验证';
++    $('signature-badge').dataset.state = 'idle';
++    $('signature-source').textContent = '';
++    $('signature-time').textContent = '';
++  }
++
++  function displaySignature(result: SignatureResult) {
++    $('signature-status').textContent = result.message;
++    $('signature-status').dataset.state = result.state;
++    $('signature-badge').textContent = result.state === 'verified' ? '签名匹配' : result.state === 'invalid' ? '签名不匹配' : '签名未验证';
++    $('signature-badge').dataset.state = result.state;
++    $('signature-source').textContent = result.source ? `密钥来源：${result.source}` : '';
++  }
++
++  function scheduleVerification() {
++    resetSignature();
++    if (!enabled || !input.value.trim()) return;
++    const version = verificationRevision;
++    verificationTimer = setTimeout(async () => {
++      $('signature-status').textContent = '正在自动验签…';
++      verificationRequest = new AbortController();
++      const result = await verifySignature(input.value, {
++        mode: $<HTMLSelectElement>('key-source').value as 'entra' | 'manual',
++        algorithm: $<HTMLSelectElement>('signature-algorithm').value,
++        key: keyInput.value,
++        base64Secret: $<HTMLInputElement>('secret-base64').checked,
++        signal: verificationRequest.signal,
++      });
++      if (version !== verificationRevision) return;
++      displaySignature(result);
++      const decoded = current;
++      if (decoded?.status === 'decoded') {
++        const exp = decoded.claims?.exp, nbf = decoded.claims?.nbf;
++        const now = Date.now() / 1000;
++        $('signature-time').textContent = typeof exp === 'number' && now >= exp ? '时间声明：按 exp 已过期（签名仍可能匹配）。' : typeof nbf === 'number' && now < nbf ? '时间声明：按 nbf 尚未生效。' : decoded.times.exp ? '时间声明：按本机时钟暂未过期；不代表实际可用。' : '时间声明：缺少或存在异常 exp，无法确定过期时间。';
++      }
++    }, 200);
++  }
++
++  // Only serialized JSON is highlighted; untrusted values always use text nodes.
++  function showJson(target: HTMLElement, value: Record<string, unknown>) {
++    const json = JSON.stringify(value, null, 2);
++    const pattern = /"(?:\\.|[^"\\])*"(?=\s*:)|"(?:\\.|[^"\\])*"|\b(?:true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g;
++    let offset = 0;
++    target.replaceChildren();
++    for (const match of json.matchAll(pattern)) {
++      target.append(document.createTextNode(json.slice(offset, match.index)));
++      const span = document.createElement('span');
++      const text = match[0];
++      span.className = text.startsWith('"') ? (/^\s*:/.test(json.slice(match.index! + text.length)) ? 'json-key' : 'json-string') : 'json-literal';
++      span.textContent = text;
++      target.append(span);
++      offset = match.index! + text.length;
++    }
++    target.append(document.createTextNode(json.slice(offset)));
++  }
++  function switchView(part: Part, view: string) {
++    $(`${part}-json`).hidden = view !== 'json';
++    $(`${part}-claims`).hidden = view !== 'claims';
++    for (const button of document.querySelectorAll<HTMLButtonElement>(`[data-part="${part}"]`)) {
++      button.setAttribute('aria-pressed', String(button.dataset.view === view));
++    }
++  }
++  function clearResult(message = '等待输入') {
++    resetSignature();
++    revision++;
++    current = undefined;
++    $('diagnostics').hidden = true;
++    for (const id of ['summary', 'warnings', 'header-fields', 'payload-fields', 'copy-status']) $(id).replaceChildren();
++    for (const part of parts) {
++      $(`${part}-json`).textContent = message;
++      $<HTMLButtonElement>(`copy-${part}`).disabled = true;
++      switchView(part, 'json');
++    }
++    $('status').textContent = message;
++  }
++  function colorToken() {
++    const mirror = $('token-colors');
++    mirror.style.width = `${input.clientWidth}px`;
++    mirror.replaceChildren();
++    const raw = input.value;
++    const prefix = raw.match(/^\s*(?:Bearer\s+)?/i)?.[0] ?? '';
++    const segments = raw.slice(prefix.length).split('.');
++    if (segments.length === 3 && raw.length <= MAX_INPUT_BYTES) {
++      mirror.append(document.createTextNode(prefix));
++      segments.forEach((segment, index) => {
++        if (index) mirror.append(document.createTextNode('.'));
++        const span = document.createElement('span');
++        span.className = `token-segment ${['header', 'payload', 'signature'][index]}-color`;
++        span.textContent = segment;
++        mirror.append(span);
++      });
++    } else mirror.textContent = raw;
++    mirror.append(document.createTextNode('\u200b'));
++    mirror.scrollTop = input.scrollTop;
++    mirror.scrollLeft = input.scrollLeft;
++  }
++  function row(label: string, value: string) {
++    const item = document.createElement('div'); item.className = 'summary-row';
++    const key = document.createElement('span'); key.textContent = label;
++    const text = document.createElement('strong'); text.textContent = value;
++    item.append(key, text); $('summary').append(item);
++  }
++  function permissionChips(values: string[]): HTMLElement {
++    const list = document.createElement('div');
++    list.className = 'perm-list';
++    for (const value of values) {
++      const info = permissionInfo(value);
++      const chip = document.createElement('span');
++      chip.className = 'perm-chip' + (info?.critical ? ' perm-critical' : '');
++      chip.textContent = value;
++      chip.title = info ? `${info.description}${info.critical ? ' · 重要（标红）' : ''}` : '未收录的权限值';
++      list.append(chip);
++    }
++    return list;
++  }
++  function matchNote(label: string, critical: boolean): HTMLElement {
++    const note = document.createElement('span');
++    note.className = 'value-match' + (critical ? ' value-critical' : '');
++    note.textContent = `${label}${critical ? '（重要）' : ''}`;
++    return note;
++  }
++  function render(result: InspectionResult) {
++    current = result;
++    $('diagnostics').hidden = false;
++    $('status').textContent = !enabled && result.status !== 'error' ? `格式：${result.format} · 不展示声明` : { decoded: '格式有效 · 已解码', encrypted: '已识别 JWE · 载荷加密', opaque: '不透明或未知格式 · 无法读取内容', error: '未能解析 · 请检查输入' }[result.status];
++    row('格式', result.format);
++    if (enabled) row('发行方线索', result.provider);
++    for (const [key, value] of Object.entries(result.times)) row(`${key} · UTC`, value);
++    for (const message of [...result.evidence, ...result.warnings]) {
++      const li = document.createElement('li'); li.textContent = message; $('warnings').append(li);
++    }
++    for (const part of parts) {
++      const value = part === 'header' ? result.header : result.claims;
++      if (value) {
++        showJson($(`${part}-json`), value);
++        $<HTMLButtonElement>(`copy-${part}`).disabled = false;
++      } else {
++        $(`${part}-json`).textContent = part === 'payload' && result.status === 'encrypted' ? '载荷已加密，无法显示。' : '没有可解码的内容。';
++      }
++      for (const field of result.fields.filter(field => field.name.startsWith(`${part}.`))) {
++        const fieldName = field.name.slice(part.length + 1);
++        const tr = document.createElement('tr');
++        const td = document.createElement('td');
++        const key = document.createElement('strong'); key.textContent = fieldName;
++        td.append(key);
++        const scopeValues = part === 'payload' && fieldName === 'scp' ? splitScopes(field.value) : [];
++        const roleList = part === 'payload' && fieldName === 'roles' ? roleValues(field.value) : [];
++        if (scopeValues.length || roleList.length) {
++          td.append(permissionChips(scopeValues.length ? scopeValues : roleList));
++        } else {
++          const value = document.createElement('code'); value.textContent = JSON.stringify(field.value, null, 2);
++          td.append(value);
++        }
++        if (part === 'payload' && (fieldName === 'azp' || fieldName === 'appid') && typeof field.value === 'string') {
++          const app = clientApp(field.value);
++          if (app) {
++            const note = matchNote(`应用：${app.name}${app.note ? `（${app.note}）` : ''}`, Boolean(app.critical));
++            if (app.foci) note.title = 'FOCI 客户端：刷新 Token 可在同一家族客户端间换取新 Token';
++            else if (app.broci) note.title = 'BroCi 客户端：可经门户经纪端点换取其他客户端的 Token';
++            td.append(note);
++          }
++        }
++        if (part === 'payload' && fieldName === 'aud') {
++          for (const name of audienceNames(field.value)) td.append(matchNote(`API：${name}`, false));
++        }
++        const explanation = document.createElement('td'); explanation.textContent = field.description;
++        const matched = part === 'payload' && (scopeValues.length || roleList.length)
++          ? [...scopeValues, ...roleList].map(value => [value, permissionInfo(value)] as const).filter(([, info]) => info?.description)
++          : [];
++        if (matched.length) explanation.append(document.createTextNode(`值匹配：${matched.map(([value, info]) => `${value}=${info!.description}`).join('；')}`));
++        if (part === 'payload' && Object.hasOwn(result.times, fieldName)) explanation.append(document.createTextNode(` UTC：${result.times[fieldName]}`));
++        tr.append(td, explanation); $(`${part}-fields`).append(tr);
++      }
++    }
++    scheduleVerification();
++  }
++  input.addEventListener('scroll', () => {
++    $('token-colors').scrollTop = input.scrollTop;
++    $('token-colors').scrollLeft = input.scrollLeft;
++  });
++  window.addEventListener('resize', colorToken);
++  function clearAll() {
++    input.value = '';
++    keyInput.value = '';
++    clearVerificationCache();
++    $('token-colors').replaceChildren();
++    $('byte-count').textContent = '0 B';
++    clearResult();
++  }
++  function updateKeyControls() {
++    const manual = $<HTMLSelectElement>('key-source').value === 'manual';
++    $('manual-key').hidden = !manual;
++    $('network-notice').hidden = manual;
++    const hmac = $<HTMLSelectElement>('signature-algorithm').value.startsWith('HS');
++    $('secret-options').hidden = !hmac;
++    $('key-label').textContent = hmac ? '共享密钥（原文逐字使用；不自动裁剪空白）' : '公钥：PEM / 证书 / JWK / JWKS（不要输入私钥）';
++    keyInput.placeholder = hmac ? '输入共享密钥后自动验签' : '粘贴可信公钥，输入后自动验签';
++    scheduleVerification();
++  }
++  $('key-source').addEventListener('change', () => { clearVerificationCache(); updateKeyControls(); });
++  $('signature-algorithm').addEventListener('change', updateKeyControls);
++  $('secret-base64').addEventListener('change', scheduleVerification);
++  keyInput.addEventListener('input', scheduleVerification);
++  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-view]')) {
++    button.addEventListener('click', () => switchView(button.dataset.part as Part, button.dataset.view!));
++  }
++  for (const part of parts) {
++    $(`copy-${part}`).addEventListener('click', async () => {
++      const value = part === 'header' ? current?.header : current?.claims;
++      if (!value) return;
++      const version = revision;
++      try {
++        await navigator.clipboard.writeText(JSON.stringify(value, null, 2));
++        if (version === revision) $('copy-status').textContent = `${part === 'header' ? 'Header' : 'Payload'} 已复制到剪贴板。`;
++      } catch {
++        if (version === revision) $('copy-status').textContent = '复制失败，请手动选择 JSON 复制。';
++      }
++    });
++  }
++  return {
++    render,
++    reset: clearResult,
++    clear: clearAll,
++    colorToken,
++    setEnabled(value: boolean) { enabled = value; resetSignature(); },
++  };
++}
+diff --git a/before-source/token-inspector/src/main.ts b/after-source/token-inspector/src/main.ts
+index fc9fe94..4f049d3 100644
+--- a/before-source/token-inspector/src/main.ts
++++ b/after-source/token-inspector/src/main.ts
+@@ -1,252 +1,69 @@
+-import './style.css';
+-import { inspectToken, MAX_INPUT_BYTES, type InspectionResult } from './core';
+-import { clearVerificationCache, verifySignature, type SignatureResult } from './verification';
+-import { audienceNames, clientApp, permissionInfo, roleValues, splitScopes } from './permissions';
++import './style.css';
++import { createDecoder } from './decoder';
++import { modes, type TokenPurpose } from './modes';
+ 
+ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+ const input = $<HTMLTextAreaElement>('token');
+-const parts = ['header', 'payload'] as const;
+-type Part = typeof parts[number];
+-let current: InspectionResult | undefined;
++const tabs = [...document.querySelectorAll<HTMLButtonElement>('[data-purpose]')];
++const decoder = createDecoder();
++let purpose: TokenPurpose = 'access';
+ let timer: ReturnType<typeof setTimeout> | undefined;
+-let revision = 0;
+-let verificationRevision = 0;
+-let verificationTimer: ReturnType<typeof setTimeout> | undefined;
+-let verificationRequest: AbortController | undefined;
+-const keyInput = $<HTMLTextAreaElement>('verification-key');
+ 
+-function resetSignature() {
+-  verificationRevision++;
+-  clearTimeout(verificationTimer);
+-  verificationRequest?.abort();
+-  $('signature-status').textContent = '签名未验证';
+-  $('signature-status').dataset.state = 'idle';
+-  $('signature-badge').textContent = '签名未验证';
+-  $('signature-badge').dataset.state = 'idle';
+-  $('signature-source').textContent = '';
+-  $('signature-time').textContent = '';
++function clearAll() {
++  clearTimeout(timer);
++  decoder.clear();
+ }
+ 
+-function displaySignature(result: SignatureResult) {
+-  $('signature-status').textContent = result.message;
+-  $('signature-status').dataset.state = result.state;
+-  $('signature-badge').textContent = result.state === 'verified' ? '签名匹配' : result.state === 'invalid' ? '签名不匹配' : '签名未验证';
+-  $('signature-badge').dataset.state = result.state;
+-  $('signature-source').textContent = result.source ? `密钥来源：${result.source}` : '';
++function showMode() {
++  const mode = modes[purpose];
++  decoder.setEnabled(mode.canDecode);
++  $('purpose-title').textContent = mode.label;
++  $('purpose-description').textContent = mode.description;
++  $('purpose-panel').setAttribute('aria-labelledby', `tab-${purpose}`);
++  $('details').hidden = !mode.canDecode;
++  $('refresh-details').hidden = mode.canDecode;
++  $('token-legend').hidden = !mode.canDecode;
++  $('signature-badge').hidden = !mode.canDecode;
++  $('mode-capability').textContent = mode.canDecode ? '不上传 Token · 解码与验签' : '仅识别格式 · 不刷新或换票';
++  $('token-label').textContent = `粘贴 ${mode.label}`;
++  input.placeholder = `在这里粘贴 ${mode.label}…\n\n支持 Bearer 前缀\n${mode.canDecode ? '输入后自动解析' : '仅识别格式，不解密、不验签'}`;
++  for (const tab of tabs) {
++    const selected = tab.dataset.purpose === purpose;
++    tab.setAttribute('aria-selected', String(selected));
++    tab.tabIndex = selected ? 0 : -1;
++  }
+ }
+ 
+-function scheduleVerification() {
+-  resetSignature();
+-  if (!input.value.trim()) return;
+-  const version = verificationRevision;
+-  verificationTimer = setTimeout(async () => {
+-    $('signature-status').textContent = '正在自动验签…';
+-    verificationRequest = new AbortController();
+-    const result = await verifySignature(input.value, {
+-      mode: $<HTMLSelectElement>('key-source').value as 'entra' | 'manual',
+-      algorithm: $<HTMLSelectElement>('signature-algorithm').value,
+-      key: keyInput.value,
+-      base64Secret: $<HTMLInputElement>('secret-base64').checked,
+-      signal: verificationRequest.signal,
+-    });
+-    if (version !== verificationRevision) return;
+-    displaySignature(result);
+-    const decoded = current;
+-    if (decoded?.status === 'decoded') {
+-      const exp = decoded.claims?.exp, nbf = decoded.claims?.nbf;
+-      const now = Date.now() / 1000;
+-      $('signature-time').textContent = typeof exp === 'number' && now >= exp ? '时间声明：按 exp 已过期（签名仍可能匹配）。' : typeof nbf === 'number' && now < nbf ? '时间声明：按 nbf 尚未生效。' : decoded.times.exp ? '时间声明：按本机时钟暂未过期；不代表实际可用。' : '时间声明：缺少或存在异常 exp，无法确定过期时间。';
+-    }
+-  }, 200);
++function selectMode(next: TokenPurpose) {
++  if (next === purpose) return;
++  clearAll();
++  purpose = next;
++  showMode();
+ }
+ 
+-// Only serialized JSON is highlighted; untrusted values always use text nodes.
+-function showJson(target: HTMLElement, value: Record<string, unknown>) {
+-  const json = JSON.stringify(value, null, 2);
+-  const pattern = /"(?:\\.|[^"\\])*"(?=\s*:)|"(?:\\.|[^"\\])*"|\b(?:true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/g;
+-  let offset = 0;
+-  target.replaceChildren();
+-  for (const match of json.matchAll(pattern)) {
+-    target.append(document.createTextNode(json.slice(offset, match.index)));
+-    const span = document.createElement('span');
+-    const text = match[0];
+-    span.className = text.startsWith('"') ? (/^\s*:/.test(json.slice(match.index! + text.length)) ? 'json-key' : 'json-string') : 'json-literal';
+-    span.textContent = text;
+-    target.append(span);
+-    offset = match.index! + text.length;
+-  }
+-  target.append(document.createTextNode(json.slice(offset)));
+-}
+-function switchView(part: Part, view: string) {
+-  $(`${part}-json`).hidden = view !== 'json';
+-  $(`${part}-claims`).hidden = view !== 'claims';
+-  for (const button of document.querySelectorAll<HTMLButtonElement>(`[data-part="${part}"]`)) {
+-    button.setAttribute('aria-pressed', String(button.dataset.view === view));
+-  }
+-}
+-function clearResult(message = '等待输入') {
+-  resetSignature();
+-  revision++;
+-  current = undefined;
+-  $('diagnostics').hidden = true;
+-  for (const id of ['summary', 'warnings', 'header-fields', 'payload-fields', 'copy-status']) $(id).replaceChildren();
+-  for (const part of parts) {
+-    $(`${part}-json`).textContent = message;
+-    $<HTMLButtonElement>(`copy-${part}`).disabled = true;
+-    switchView(part, 'json');
+-  }
+-  $('status').textContent = message;
+-}
+-function colorToken() {
+-  const mirror = $('token-colors');
+-  mirror.style.width = `${input.clientWidth}px`;
+-  mirror.replaceChildren();
+-  const raw = input.value;
+-  const prefix = raw.match(/^\s*(?:Bearer\s+)?/i)?.[0] ?? '';
+-  const segments = raw.slice(prefix.length).split('.');
+-  if (segments.length === 3 && raw.length <= MAX_INPUT_BYTES) {
+-    mirror.append(document.createTextNode(prefix));
+-    segments.forEach((segment, index) => {
+-      if (index) mirror.append(document.createTextNode('.'));
+-      const span = document.createElement('span');
+-      span.className = `token-segment ${['header', 'payload', 'signature'][index]}-color`;
+-      span.textContent = segment;
+-      mirror.append(span);
+-    });
+-  } else mirror.textContent = raw;
+-  mirror.append(document.createTextNode('\u200b'));
+-  mirror.scrollTop = input.scrollTop;
+-  mirror.scrollLeft = input.scrollLeft;
+-}
+-function row(label: string, value: string) {
+-  const item = document.createElement('div'); item.className = 'summary-row';
+-  const key = document.createElement('span'); key.textContent = label;
+-  const text = document.createElement('strong'); text.textContent = value;
+-  item.append(key, text); $('summary').append(item);
+-}
+-function permissionChips(values: string[]): HTMLElement {
+-  const list = document.createElement('div');
+-  list.className = 'perm-list';
+-  for (const value of values) {
+-    const info = permissionInfo(value);
+-    const chip = document.createElement('span');
+-    chip.className = 'perm-chip' + (info?.critical ? ' perm-critical' : '');
+-    chip.textContent = value;
+-    chip.title = info ? `${info.description}${info.critical ? ' · 重要（标红）' : ''}` : '未收录的权限值';
+-    list.append(chip);
+-  }
+-  return list;
+-}
+-function matchNote(label: string, critical: boolean): HTMLElement {
+-  const note = document.createElement('span');
+-  note.className = 'value-match' + (critical ? ' value-critical' : '');
+-  note.textContent = `${label}${critical ? '（重要）' : ''}`;
+-  return note;
+-}
+-function render(result: InspectionResult) {
+-  current = result;
+-  $('diagnostics').hidden = false;
+-  $('status').textContent = { decoded: '格式有效 · 已解码', encrypted: '已识别 JWE · 载荷加密', opaque: '不透明或未知格式 · 无法读取内容', error: '未能解析 · 请检查输入' }[result.status];
+-  row('格式', result.format); row('发行方线索', result.provider);
+-  for (const [key, value] of Object.entries(result.times)) row(`${key} · UTC`, value);
+-  for (const message of [...result.evidence, ...result.warnings]) {
+-    const li = document.createElement('li'); li.textContent = message; $('warnings').append(li);
+-  }
+-  for (const part of parts) {
+-    const value = part === 'header' ? result.header : result.claims;
+-    if (value) {
+-      showJson($(`${part}-json`), value);
+-      $<HTMLButtonElement>(`copy-${part}`).disabled = false;
+-    } else {
+-      $(`${part}-json`).textContent = part === 'payload' && result.status === 'encrypted' ? '载荷已加密，无法显示。' : '没有可解码的内容。';
+-    }
+-    for (const field of result.fields.filter(field => field.name.startsWith(`${part}.`))) {
+-      const fieldName = field.name.slice(part.length + 1);
+-      const tr = document.createElement('tr');
+-      const td = document.createElement('td');
+-      const key = document.createElement('strong'); key.textContent = fieldName;
+-      td.append(key);
+-      const scopeValues = part === 'payload' && fieldName === 'scp' ? splitScopes(field.value) : [];
+-      const roleList = part === 'payload' && fieldName === 'roles' ? roleValues(field.value) : [];
+-      if (scopeValues.length || roleList.length) {
+-        td.append(permissionChips(scopeValues.length ? scopeValues : roleList));
+-      } else {
+-        const value = document.createElement('code'); value.textContent = JSON.stringify(field.value, null, 2);
+-        td.append(value);
+-      }
+-      if (part === 'payload' && (fieldName === 'azp' || fieldName === 'appid') && typeof field.value === 'string') {
+-        const app = clientApp(field.value);
+-        if (app) {
+-          const note = matchNote(`应用：${app.name}${app.note ? `（${app.note}）` : ''}`, Boolean(app.critical));
+-          if (app.foci) note.title = 'FOCI 客户端：刷新 Token 可在同一家族客户端间换取新 Token';
+-          else if (app.broci) note.title = 'BroCi 客户端：可经门户经纪端点换取其他客户端的 Token';
+-          td.append(note);
+-        }
+-      }
+-      if (part === 'payload' && fieldName === 'aud') {
+-        for (const name of audienceNames(field.value)) td.append(matchNote(`API：${name}`, false));
+-      }
+-      const explanation = document.createElement('td'); explanation.textContent = field.description;
+-      const matched = part === 'payload' && (scopeValues.length || roleList.length)
+-        ? [...scopeValues, ...roleList].map(value => [value, permissionInfo(value)] as const).filter(([, info]) => info?.description)
+-        : [];
+-      if (matched.length) explanation.append(document.createTextNode(`值匹配：${matched.map(([value, info]) => `${value}=${info!.description}`).join('；')}`));
+-      if (part === 'payload' && Object.hasOwn(result.times, fieldName)) explanation.append(document.createTextNode(` UTC：${result.times[fieldName]}`));
+-      tr.append(td, explanation); $(`${part}-fields`).append(tr);
+-    }
+-  }
+-  scheduleVerification();
++for (const tab of tabs) {
++  tab.addEventListener('click', () => selectMode(tab.dataset.purpose as TokenPurpose));
++  tab.addEventListener('keydown', event => {
++    const index = tabs.indexOf(tab);
++    let next: number;
++    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
++    else if (event.key === 'ArrowLeft') next = (index + tabs.length - 1) % tabs.length;
++    else if (event.key === 'Home') next = 0;
++    else if (event.key === 'End') next = tabs.length - 1;
++    else return;
++    event.preventDefault();
++    tabs[next].focus();
++    selectMode(tabs[next].dataset.purpose as TokenPurpose);
++  });
+ }
++
+ input.addEventListener('input', () => {
+   clearTimeout(timer);
+   $('byte-count').textContent = `${new TextEncoder().encode(input.value).length.toLocaleString()} B`;
+-  clearResult(input.value.trim() ? '正在解析…' : '等待输入');
+-  colorToken();
+-  if (input.value.trim()) timer = setTimeout(() => render(inspectToken(input.value)), 150);
++  decoder.reset(input.value.trim() ? '正在解析…' : '等待输入');
++  decoder.colorToken();
++  if (input.value.trim()) timer = setTimeout(() => decoder.render(modes[purpose].inspect(input.value)), 150);
+ });
+-input.addEventListener('scroll', () => {
+-  $('token-colors').scrollTop = input.scrollTop;
+-  $('token-colors').scrollLeft = input.scrollLeft;
+-});
+-window.addEventListener('resize', colorToken);
+-function clearAll() {
+-  clearTimeout(timer);
+-  input.value = '';
+-  keyInput.value = '';
+-  clearVerificationCache();
+-  $('token-colors').replaceChildren();
+-  $('byte-count').textContent = '0 B';
+-  clearResult();
+-}
+-function updateKeyControls() {
+-  const manual = $<HTMLSelectElement>('key-source').value === 'manual';
+-  $('manual-key').hidden = !manual;
+-  $('network-notice').hidden = manual;
+-  const hmac = $<HTMLSelectElement>('signature-algorithm').value.startsWith('HS');
+-  $('secret-options').hidden = !hmac;
+-  $('key-label').textContent = hmac ? '共享密钥（原文逐字使用；不自动裁剪空白）' : '公钥：PEM / 证书 / JWK / JWKS（不要输入私钥）';
+-  keyInput.placeholder = hmac ? '输入共享密钥后自动验签' : '粘贴可信公钥，输入后自动验签';
+-  scheduleVerification();
+-}
+-$('key-source').addEventListener('change', () => { clearVerificationCache(); updateKeyControls(); });
+-$('signature-algorithm').addEventListener('change', updateKeyControls);
+-$('secret-base64').addEventListener('change', scheduleVerification);
+-keyInput.addEventListener('input', scheduleVerification);
+ $('clear').addEventListener('click', () => { clearAll(); input.focus(); });
+-for (const button of document.querySelectorAll<HTMLButtonElement>('[data-view]')) {
+-  button.addEventListener('click', () => switchView(button.dataset.part as Part, button.dataset.view!));
+-}
+-for (const part of parts) {
+-  $(`copy-${part}`).addEventListener('click', async () => {
+-    const value = part === 'header' ? current?.header : current?.claims;
+-    if (!value) return;
+-    const version = revision;
+-    try {
+-      await navigator.clipboard.writeText(JSON.stringify(value, null, 2));
+-      if (version === revision) $('copy-status').textContent = `${part === 'header' ? 'Header' : 'Payload'} 已复制到剪贴板。`;
+-    } catch {
+-      if (version === revision) $('copy-status').textContent = '复制失败，请手动选择 JSON 复制。';
+-    }
+-  });
+-}
+-window.addEventListener('pagehide', clearAll);
++window.addEventListener('pagehide', clearAll);
++showMode();
+diff --git a/after-source/token-inspector/src/modes/access.ts b/after-source/token-inspector/src/modes/access.ts
+new file mode 100644
+index 0000000..9a62d88
+--- /dev/null
++++ b/after-source/token-inspector/src/modes/access.ts
+@@ -0,0 +1,9 @@
++import { inspectToken } from '../core';
++import type { TokenMode } from './types';
++
++export const accessMode: TokenMode = {
++  label: 'Access Token',
++  description: '用于访问 API 的凭据。查看可解码声明与签名匹配结果，不代表 API 实际授权成功。',
++  canDecode: true,
++  inspect: inspectToken,
++};
+diff --git a/after-source/token-inspector/src/modes/id.ts b/after-source/token-inspector/src/modes/id.ts
+new file mode 100644
+index 0000000..ea808be
+--- /dev/null
++++ b/after-source/token-inspector/src/modes/id.ts
+@@ -0,0 +1,9 @@
++import { inspectToken } from '../core';
++import type { TokenMode } from './types';
++
++export const idMode: TokenMode = {
++  label: 'ID Token',
++  description: '用于向客户端传递认证信息。复用通用字段说明与验签，不执行 ID Token 专属校验。',
++  canDecode: true,
++  inspect: inspectToken,
++};
+diff --git a/after-source/token-inspector/src/modes/index.ts b/after-source/token-inspector/src/modes/index.ts
+new file mode 100644
+index 0000000..772a4e4
+--- /dev/null
++++ b/after-source/token-inspector/src/modes/index.ts
+@@ -0,0 +1,11 @@
++import { accessMode } from './access';
++import { idMode } from './id';
++import { refreshMode } from './refresh';
++import type { TokenMode, TokenPurpose } from './types';
++
++export type { TokenPurpose } from './types';
++export const modes: Record<TokenPurpose, TokenMode> = {
++  access: accessMode,
++  id: idMode,
++  refresh: refreshMode,
++};
+diff --git a/after-source/token-inspector/src/modes/refresh.ts b/after-source/token-inspector/src/modes/refresh.ts
+new file mode 100644
+index 0000000..1cd3a90
+--- /dev/null
++++ b/after-source/token-inspector/src/modes/refresh.ts
+@@ -0,0 +1,27 @@
++import { inspectToken, type InspectionResult } from '../core';
++import type { TokenMode } from './types';
++
++function inspectRefresh(input: string): InspectionResult {
++  const result = inspectToken(input);
++  // Reuse format validation, but never pass decoded credentials to the view.
++  return {
++    format: result.format,
++    status: result.status,
++    verification: 'not-performed',
++    provider: '未知 / 未识别',
++    evidence: [],
++    fields: [],
++    times: {},
++    warnings: result.status === 'error' ? result.warnings.slice(1) : [
++      '仅识别输入格式，不展示声明、不解密、不验签，也不执行刷新或换票请求。',
++      'Entra Refresh Token 只能由 Microsoft identity platform 读取；格式不能确认用途或实际可用性。',
++    ],
++  };
++}
++
++export const refreshMode: TokenMode = {
++  label: 'Refresh Token',
++  description: '用于请求新 Token 的凭据。此入口只识别格式，不执行刷新、换票、解密或验签。',
++  canDecode: false,
++  inspect: inspectRefresh,
++};
+diff --git a/after-source/token-inspector/src/modes/types.ts b/after-source/token-inspector/src/modes/types.ts
+new file mode 100644
+index 0000000..2e079ae
+--- /dev/null
++++ b/after-source/token-inspector/src/modes/types.ts
+@@ -0,0 +1,9 @@
++import type { InspectionResult } from '../core';
++
++export type TokenPurpose = 'access' | 'id' | 'refresh';
++export interface TokenMode {
++  label: string;
++  description: string;
++  canDecode: boolean;
++  inspect(input: string): InspectionResult;
++}
+diff --git a/before-source/token-inspector/src/style.css b/after-source/token-inspector/src/style.css
+index 3daffbc..b07b7bb 100644
+--- a/before-source/token-inspector/src/style.css
++++ b/after-source/token-inspector/src/style.css
+@@ -12,7 +12,12 @@ h1 { margin: 9px 0; font-size: 31px; font-weight: 650; letter-spacing: -.6px; }
+ h1 span { color: #727785; font-size: 25px; font-weight: 400; margin-left: 7px; }
+ .intro p { color: #747987; margin: 9px 0 0; font-size: 12px; }
+ .mode-bar { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #dddfe6; color: #858a95; font-size: 11px; margin-bottom: 26px; }
+-.active-mode { padding: 10px 4px 12px; border-bottom: 3px solid #242735; color: #242735; font-size: 14px; font-weight: 650; }
++.purpose-tabs { display: flex; min-width: 0; gap: 8px; }
++.purpose-tabs button { padding: 10px 9px 12px; border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; white-space: nowrap; }
++.purpose-tabs [aria-selected="true"] { border-bottom-color: #242735; color: #242735; font-weight: 650; }
++#purpose-title { color: inherit; font-size: inherit; font-weight: inherit; margin-left: 0; }
++.refresh-panel { padding: 20px; border: 1px solid #e2e4eb; border-radius: 6px; background: #fcfcfe; color: #626a79; }
++.refresh-panel p { overflow-wrap: anywhere; }
+ small { font-weight: 400; color: #7e8390; font-size: 11px; margin-left: 8px; }
+ .workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 30px; align-items: start; }
+ .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+@@ -54,7 +59,8 @@ footer { border-top: 1px solid #e8e9ed; margin-top: 30px; padding: 23px 0; displ
+ [hidden] { display: none !important; }
+ @media (max-width: 800px) {
+   .shell { padding: 0 20px; }.workspace { grid-template-columns: minmax(0, 1fr); gap: 25px; }.brand b { display: none; }
+-  h1 { font-size: 25px; }h1 span { font-size: 21px; }.intro { padding-top: 26px; }.mode-bar { gap: 15px; }.mode-bar > span:last-child { font-size: 9px; }
++  h1 { font-size: 25px; }h1 span { font-size: 21px; }.intro { padding-top: 26px; }.mode-bar { gap: 6px; flex-wrap: wrap; }.mode-bar > span:last-child { font-size: 9px; padding-bottom: 8px; }
++  .purpose-tabs { gap: 2px; }.purpose-tabs button { padding: 10px 6px 12px; font-size: 11px; }
+   .editor { height: 310px; }#token, #token-colors { font-size: 13px; padding: 16px; }h2 { font-size: 14px; }h2 small { font-size: 10px; margin-left: 3px; }button { padding: 6px 8px; font-size: 11px; }
+   .signature-note { gap: 10px; }footer { flex-direction: column; gap: 8px; }
+ }
+diff --git a/before-source/token-inspector/tests/browser/page.spec.ts b/after-source/token-inspector/tests/browser/page.spec.ts
+index 1a5d028..3c00599 100644
+--- a/before-source/token-inspector/tests/browser/page.spec.ts
++++ b/after-source/token-inspector/tests/browser/page.spec.ts
+@@ -13,7 +13,7 @@ test('offline local page, no credential traffic, safe rendering and state reset'
+     return new URL(url).hostname === '127.0.0.1' ? route.continue() : route.abort();
+   });
+   await page.goto('/');
+-  await expect(page.getByRole('heading', { name: 'JSON Web Token 解码器' })).toBeVisible();
++  await expect(page.getByRole('heading', { name: 'Access Token 诊断工具' })).toBeVisible();
+   const initialRequests = requests.length;
+   await page.context().setOffline(true);
+   await page.locator('#token').fill(token({ iss: 'https://login.microsoftonline.com/example/v2.0', scp: 'User.Read', exp: 1, html: '<img src=x onerror=alert(1)>', jku: 'https://example.com/key' }));
+diff --git a/after-source/token-inspector/tests/browser/purposes.spec.ts b/after-source/token-inspector/tests/browser/purposes.spec.ts
+new file mode 100644
+index 0000000..7c01bf5
+--- /dev/null
++++ b/after-source/token-inspector/tests/browser/purposes.spec.ts
+@@ -0,0 +1,162 @@
++import { test, expect } from '@playwright/test';
++import { base64url, exportJWK, generateKeyPair, SignJWT } from 'jose';
++
++const jwt = (claims: unknown = { sub: 'synthetic-purpose-user', exp: 1 }) =>
++  `${base64url.encode('{"alg":"RS256"}')}.${base64url.encode(JSON.stringify(claims))}.AA`;
++
++test('defaults to Access and supports accessible keyboard navigation without storage', async ({ page }) => {
++  await page.goto('/');
++  await expect(page.getByRole('tab')).toHaveCount(3);
++  const access = page.getByRole('tab', { name: 'Access Token', exact: true });
++  await expect(access).toHaveAttribute('aria-selected', 'true');
++  await expect(page.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'tab-access');
++  await access.focus();
++  await page.keyboard.press('ArrowRight');
++  await expect(page.getByRole('tab', { name: 'ID Token', exact: true })).toBeFocused();
++  await expect(page.locator('#purpose-title')).toHaveText('ID Token');
++  await expect(page.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', 'tab-id');
++  await expect(page.locator('#details')).toBeVisible();
++  await page.keyboard.press('End');
++  await expect(page.locator('#refresh-details')).toBeVisible();
++  await page.keyboard.press('ArrowRight');
++  await expect(access).toBeFocused();
++  await page.keyboard.press('ArrowLeft');
++  await expect(page.locator('#tab-refresh')).toBeFocused();
++  await page.keyboard.press('Home');
++  await expect(access).toHaveAttribute('tabindex', '0');
++  expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
++});
++
++test('ID retains manual signature validation and switching clears credentials and results', async ({ page }) => {
++  const secret = 'purpose-fixture-secret-at-least-32-bytes';
++  const token = await new SignJWT({ sub: 'synthetic-id-user' }).setProtectedHeader({ alg: 'HS256' }).sign(new TextEncoder().encode(secret));
++  await page.goto('/');
++  await page.locator('#tab-id').click();
++  await page.locator('#key-source').selectOption('manual');
++  await page.locator('#signature-algorithm').selectOption('HS256');
++  await page.locator('#verification-key').fill(secret);
++  await page.locator('#token').fill(token);
++  await expect(page.locator('#signature-status')).toContainText('Signature Verified');
++  await expect(page.locator('#payload-json')).toContainText('synthetic-id-user');
++  await page.locator('#tab-access').click();
++  await expect(page.locator('#token')).toHaveValue('');
++  await expect(page.locator('#verification-key')).toHaveValue('');
++  await expect(page.locator('#payload-fields')).toHaveText('');
++  await expect(page.locator('#copy-payload')).toBeDisabled();
++  await expect(page.locator('#byte-count')).toHaveText('0 B');
++  await expect(page.locator('#signature-status')).toHaveText('签名未验证');
++  await expect(page.locator('#signature-source')).toHaveText('');
++  await expect(page.locator('#signature-time')).toHaveText('');
++  await page.locator('#tab-id').click();
++  await expect(page.locator('#token')).toHaveValue('');
++  await expect(page.locator('#signature-algorithm')).toHaveValue('HS256');
++  await page.locator('#token').fill('opaque-example');
++  await expect(page.locator('#status')).toContainText('不透明');
++  const jwe = `${base64url.encode('{"alg":"dir","enc":"A256GCM"}')}..AA.AA.AA`;
++  await page.locator('#token').fill(jwe);
++  await expect(page.locator('#status')).toContainText('JWE');
++  await expect(page.locator('#payload-json')).toContainText('载荷已加密');
++});
++
++test('Refresh exposes formats and limits, never claims, copying or public-key requests', async ({ page }) => {
++  const requests: string[] = [];
++  await page.route('https://**/*', route => { requests.push(route.request().url()); return route.abort(); });
++  await page.goto('/');
++  await page.locator('#tab-refresh').click();
++  const entra = jwt({ iss: 'https://sts.windows.net/11111111-1111-1111-1111-111111111111/', sub: '<img src=x onerror=alert(1)>', scp: 'User.Read', exp: 1 });
++  await page.locator('#token').fill(entra);
++  await expect(page.locator('#status')).toContainText('格式：JWT');
++  await expect(page.locator('#details')).toBeHidden();
++  await expect(page.locator('#copy-header')).toBeHidden();
++  await expect(page.locator('#copy-payload')).toBeHidden();
++  await expect(page.locator('#signature-badge')).toBeHidden();
++  await expect(page.locator('#payload-fields')).toHaveText('');
++  await expect(page.locator('#header-fields')).toHaveText('');
++  await expect(page.locator('#payload-json')).not.toContainText('User.Read');
++  await expect(page.locator('#summary')).not.toContainText('exp');
++  const jwe = `${base64url.encode('{"alg":"dir","enc":"A256GCM"}')}..AA.AA.AA`;
++  await page.locator('#token').fill(jwe);
++  await expect(page.locator('#status')).toContainText('格式：JWE');
++  await page.locator('#token').fill('opaque-example');
++  await expect(page.locator('#status')).toContainText('Opaque / Unknown');
++  await page.locator('#token').fill('abc.def.ghi');
++  await expect(page.locator('#status')).toContainText('未能解析');
++  await page.locator('#token').fill('x'.repeat(65537));
++  await expect(page.locator('#warnings')).toContainText('64 KiB');
++  await page.waitForTimeout(400);
++  expect(requests).toEqual([]);
++  await page.screenshot({ path: 'test-results/refresh-desktop.png', fullPage: true });
++  await page.locator('#clear').click();
++  await expect(page.locator('#token')).toHaveValue('');
++  await expect(page.locator('#diagnostics')).toBeHidden();
++});
++
++test('switching cancels pending parsing and clears JWKS cache after automatic ID verification', async ({ page }) => {
++  const pair = await generateKeyPair('RS256');
++  const key = { ...await exportJWK(pair.publicKey), kid: 'purpose-test', alg: 'RS256', use: 'sig' };
++  const token = await new SignJWT({ sub: 'synthetic-purpose-user' })
++    .setIssuer('https://sts.windows.net/11111111-1111-1111-1111-111111111111/')
++    .setProtectedHeader({ alg: 'RS256', kid: key.kid }).sign(pair.privateKey);
++  let requests = 0;
++  await page.route('https://login.microsoftonline.com/**', route => {
++    requests++;
++    return route.fulfill({ json: { keys: [key] }, headers: { 'access-control-allow-origin': '*' } });
++  });
++  await page.goto('/');
++  await page.evaluate(value => {
++    const input = document.getElementById('token') as HTMLTextAreaElement;
++    input.value = value;
++    input.dispatchEvent(new Event('input'));
++    document.getElementById('tab-id')!.click();
++  }, token);
++  await page.waitForTimeout(450);
++  await expect(page.locator('#status')).toHaveText('等待输入');
++  await expect(page.locator('#token')).toHaveValue('');
++  expect(requests).toBe(0);
++  await page.locator('#token').fill(token);
++  await expect(page.locator('#signature-status')).toContainText('Signature Verified');
++  expect(requests).toBe(1);
++  await page.locator('#tab-access').click();
++  await page.locator('#token').fill(token);
++  await expect(page.locator('#signature-status')).toContainText('Signature Verified');
++  expect(requests).toBe(2);
++});
++
++test('switching during a key request blocks late results in Refresh and the next decoder', async ({ page }) => {
++  const pair = await generateKeyPair('RS256');
++  const key = { ...await exportJWK(pair.publicKey), kid: 'delayed-purpose-key', alg: 'RS256' };
++  const token = await new SignJWT({ sub: 'late-user' })
++    .setIssuer('https://sts.windows.net/11111111-1111-1111-1111-111111111111/')
++    .setProtectedHeader({ alg: 'RS256', kid: key.kid }).sign(pair.privateKey);
++  let release: () => void = () => {};
++  const released = new Promise<void>(resolve => { release = resolve; });
++  let requested = false;
++  await page.route('https://login.microsoftonline.com/**', async route => {
++    requested = true;
++    await released;
++    await route.fulfill({ json: { keys: [key] }, headers: { 'access-control-allow-origin': '*' } }).catch(() => {});
++  });
++  await page.goto('/');
++  await page.locator('#token').fill(token);
++  await expect.poll(() => requested).toBe(true);
++  await page.locator('#tab-refresh').click();
++  await expect(page.locator('#token')).toHaveValue('');
++  release();
++  await page.waitForTimeout(450);
++  await expect(page.locator('#status')).toHaveText('等待输入');
++  await expect(page.locator('#signature-status')).toHaveText('签名未验证');
++  await page.locator('#tab-id').click();
++  await expect(page.locator('#payload-json')).not.toContainText('late-user');
++  await expect(page.locator('#signature-status')).toHaveText('签名未验证');
++});
++
++test('all purpose entries fit narrow mobile screens', async ({ page }) => {
++  await page.setViewportSize({ width: 320, height: 740 });
++  await page.goto('/');
++  for (const purpose of ['access', 'id', 'refresh']) {
++    await page.locator(`#tab-${purpose}`).click();
++    await expect(page.locator(`#tab-${purpose}`)).toBeInViewport();
++    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
++  }
++  await page.screenshot({ path: 'test-results/refresh-mobile.png', fullPage: true });
++});
+diff --git a/after-source/token-inspector/tests/modes.test.ts b/after-source/token-inspector/tests/modes.test.ts
+new file mode 100644
+index 0000000..de22888
+--- /dev/null
++++ b/after-source/token-inspector/tests/modes.test.ts
+@@ -0,0 +1,41 @@
++import { describe, expect, it } from 'vitest';
++import { base64url } from 'jose';
++import { inspectToken, MAX_INPUT_BYTES } from '../src/core';
++import { modes } from '../src/modes';
++
++const jwt = `${base64url.encode('{"alg":"RS256"}')}.${base64url.encode('{"sub":"synthetic-secret","exp":1}')}.AA`;
++const jwe = `${base64url.encode('{"alg":"dir","enc":"A256GCM"}')}..AA.AA.AA`;
++
++describe('purpose entry boundaries', () => {
++  for (const purpose of ['access', 'id'] as const) {
++    for (const input of [jwt, jwe, 'opaque-example', 'abc.def.ghi']) {
++      it(`${purpose} keeps existing inspection for ${input === jwt ? 'JWT' : input === jwe ? 'JWE' : input}`, () => {
++        expect(modes[purpose].canDecode).toBe(true);
++        expect(modes[purpose].inspect(input)).toEqual(inspectToken(input));
++      });
++    }
++  }
++
++  it.each([[jwt, 'JWT'], [jwe, 'JWE'], ['opaque-example', 'Opaque / Unknown']])('refresh only exposes format for %s', (input, format) => {
++    const result = modes.refresh.inspect(input);
++    expect(modes.refresh.canDecode).toBe(false);
++    expect(result.format).toBe(format);
++    expect(result.header).toBeUndefined();
++    expect(result.claims).toBeUndefined();
++    expect(result.fields).toEqual([]);
++    expect(result.times).toEqual({});
++    expect(result.evidence).toEqual([]);
++    expect(result.verification).toBe('not-performed');
++    expect(JSON.stringify(result)).not.toContain('synthetic-secret');
++  });
++
++  it.each([
++    ['empty', ''], ['bare Bearer', 'Bearer '], ['whitespace', 'a b'],
++    ['malformed JWT', 'abc.def.ghi'], ['oversize', 'x'.repeat(MAX_INPUT_BYTES + 1)],
++  ])('refresh retains validation errors: %s', (_label, input) => {
++    const result = modes.refresh.inspect(input);
++    expect(result.status).toBe('error');
++    expect(result.warnings.length).toBeGreaterThan(0);
++    expect(result.claims).toBeUndefined();
++  });
++});

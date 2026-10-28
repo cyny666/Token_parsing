@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="referrer" content="no-referrer" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://login.microsoftonline.com; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'" />
+    <title>Token Inspector · 离线解析</title>
+  </head>
+  <body>
+    <div class="shell">
+      <header><a class="brand" href="/">{ <span>JWT</span> } <b>Token Inspector</b></a><span class="local"><i></i> LOCAL PROCESSING</span></header>
+      <main>
+        <section class="intro"><div class="eyebrow">TOKEN DEBUGGER</div><h1><span id="purpose-title">Access Token</span> <span>诊断工具</span></h1><p id="purpose-description">用于访问 API 的凭据。查看可解码声明与签名匹配结果，不代表 API 实际授权成功。</p></section>
+        <div class="mode-bar">
+          <div class="purpose-tabs" role="tablist" aria-label="Token 用途">
+            <button id="tab-access" type="button" role="tab" data-purpose="access" aria-controls="purpose-panel" aria-selected="true">Access Token</button>
+            <button id="tab-id" type="button" role="tab" data-purpose="id" aria-controls="purpose-panel" aria-selected="false" tabindex="-1">ID Token</button>
+            <button id="tab-refresh" type="button" role="tab" data-purpose="refresh" aria-controls="purpose-panel" aria-selected="false" tabindex="-1">Refresh Token</button>
+          </div>
+          <span id="mode-capability">不上传 Token · 解码与验签</span>
+        </div>
+        <div id="purpose-panel" class="workspace" role="tabpanel" aria-labelledby="tab-access">
+          <section class="encoded" aria-labelledby="input-title">
+            <div class="section-heading"><h2 id="input-title">Encoded Token <small>编码内容</small></h2><button id="clear" type="button">清空</button></div>
+            <label id="token-label" class="sr-only" for="token">粘贴 Access Token</label>
+            <div class="editor">
+              <pre id="token-colors" aria-hidden="true"></pre>
+              <textarea id="token" spellcheck="false" autocomplete="off" autocapitalize="off" wrap="soft" placeholder="在这里粘贴 Token…&#10;&#10;支持 Bearer 前缀&#10;输入后自动解析"></textarea>
+            </div>
+            <div class="input-meta"><span>最大 64 KiB</span><span id="byte-count">0 B</span></div>
+            <div id="token-legend" class="legend"><span class="header-color">● Header</span><span class="payload-color">● Payload</span><span class="signature-color">● Signature</span></div>
+            <div class="status-box"><span id="status" role="status" aria-live="polite">等待输入</span><span id="signature-badge" class="unverified">签名未验证</span></div>
+            <p class="privacy">解码 ≠ 验证 ≠ 实际可用。Access / ID / Refresh 是你选择的用途，不代表工具已确认用途。切换入口会清空 Token、密钥与结果。请勿在共享屏幕时展示真实凭据。</p>
+            <details id="diagnostics" hidden><summary>诊断与声明摘要</summary><div id="summary"></div><ul id="warnings"></ul></details>
+          </section>
+          <section id="refresh-details" class="refresh-panel" aria-labelledby="refresh-title" hidden>
+            <h2 id="refresh-title">Refresh Token <small>实验性结构解析</small></h2>
+            <p>按研究样例解释原始 <code>1.&lt;描述段&gt;.&lt;不透明载荷&gt;</code> 中的 40 字节公开描述段；不解析外层 PRT Cookie，也不读取密文声明。</p>
+            <p>结果按研究样例推断、未验证，并非微软稳定格式规范。其他版本、长度或编码异常时停止解释。<a href="https://insinuator.net/2026/10/token-theft-in-microsoft-entra-id-part-3-of-4-token-protection/" target="_blank" rel="noopener noreferrer">研究来源</a></p>
+            <section id="refresh-metadata" aria-labelledby="refresh-metadata-title" hidden>
+              <h3 id="refresh-metadata-title">公开描述段 · 未验证</h3>
+              <div class="claims-view"><table><thead><tr><th>字段 / 值</th><th>解释与限制</th></tr></thead><tbody id="refresh-metadata-fields"></tbody></table></div>
+            </section>
+            <p>Entra Refresh Token 的加密内容只能由 Microsoft identity platform 读取。本工具不解密，也不会向身份平台发送刷新或换票请求。</p>
+            <p>选择此入口不代表已确认输入是 Refresh Token；不能据此判断有效期、身份或实际可用性。</p>
+          </section>
+          <section id="details" class="decoded" aria-label="解码结果">
+            <section class="decode-panel header-panel" aria-labelledby="header-title">
+              <div class="section-heading"><h2 id="header-title">Decoded Header <small>头部</small></h2><button id="copy-header" type="button" disabled>复制 Header</button></div>
+              <div class="view-switch" role="group" aria-label="Header 展示方式"><button type="button" data-part="header" data-view="json" aria-pressed="true">JSON</button><button type="button" data-part="header" data-view="claims" aria-pressed="false">字段解释</button></div>
+              <pre id="header-json" class="json-view" aria-label="Header JSON">等待输入 Token</pre>
+              <div id="header-claims" class="claims-view" hidden><table><thead><tr><th>字段 / 值</th><th>中文解释</th></tr></thead><tbody id="header-fields"></tbody></table></div>
+            </section>
+            <section class="decode-panel payload-panel" aria-labelledby="payload-title">
+              <div class="section-heading"><h2 id="payload-title">Decoded Payload <small>载荷</small></h2><button id="copy-payload" type="button" disabled>复制 Payload</button></div>
+              <div class="view-switch" role="group" aria-label="Payload 展示方式"><button type="button" data-part="payload" data-view="json" aria-pressed="true">JSON</button><button type="button" data-part="payload" data-view="claims" aria-pressed="false">字段解释</button></div>
+              <pre id="payload-json" class="json-view" aria-label="Payload JSON">等待输入 Token</pre>
+              <div id="payload-claims" class="claims-view" hidden><table><thead><tr><th>字段 / 值</th><th>中文解释</th></tr></thead><tbody id="payload-fields"></tbody></table></div>
+            </section>
+            <section class="signature-panel" aria-labelledby="signature-title">
+              <h2 id="signature-title">Signature <small>自动签名验证</small></h2>
+              <label for="key-source">验签密钥来源</label>
+              <select id="key-source"><option value="entra">自动获取 Entra 公钥（联网）</option><option value="manual">手动输入密钥（完全离线）</option></select>
+              <p id="network-notice" class="verification-help">自动模式仅连接 login.microsoftonline.com 下载公钥；微软可见本机 IP 和发行方租户 ID，不接收 Token。当前自动发现支持全球云 Entra v1/v2 的 RS256 Token。</p>
+              <div id="manual-key" hidden>
+                <label for="signature-algorithm">预期算法（独立于 Token 声明）</label>
+                <select id="signature-algorithm"><option>RS256</option><option>RS384</option><option>RS512</option><option>PS256</option><option>PS384</option><option>PS512</option><option>ES256</option><option>ES384</option><option>ES512</option><option>EdDSA</option><option>HS256</option><option>HS384</option><option>HS512</option></select>
+                <label id="key-label" for="verification-key">公钥：PEM / 证书 / JWK / JWKS（不要输入私钥）</label>
+                <textarea id="verification-key" rows="5" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="粘贴可信公钥，输入后自动验签"></textarea>
+                <label id="secret-options" hidden><input id="secret-base64" type="checkbox" /> 共享密钥为 Base64 / Base64URL 编码</label>
+              </div>
+              <p id="signature-status" class="signature-result" data-state="idle" role="status" aria-live="polite">签名未验证</p>
+              <p id="signature-source" class="verification-help"></p>
+              <p id="signature-time" class="verification-help"></p>
+              <p class="verification-help">签名匹配只表示与所用密钥匹配，不代表未过期、签发者/受众正确、未被撤销或 API 授权成功。手动密钥的来源可信性由你确认。</p>
+            </section>
+            <p id="copy-status" role="status" aria-live="polite"></p>
+          </section>
+        </div>
+        <footer><span>LOCAL FIRST. ZERO TOKEN UPLOADS.</span><span>JWT / JWE / Opaque · 中文字段解释</span></footer>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,183 @@
+[
+  {
+    "label": "BASELINE",
+    "command": [
+      "node",
+      "C:\\Users\\86186\\Desktop\\work\\Token_parsing\\.artifacts\\merge-probe.mjs",
+      "C:\\Users\\86186\\Desktop\\work\\Token_parsing\\token-inspector"
+    ],
+    "cwd": "C:\\Users\\86186\\Desktop\\work\\Token_parsing",
+    "input": "synthetic merge-descriptor fixture only; exact identical token printed in BASELINE/MODIFIED/ROLLBACK stdout",
+    "stdout": "10:15:08 [vite] (client) Re-optimizing dependencies because vite config has changed\nINPUT=1.AQEApMXoHC1470uzpW5-UaeV-YNAS8SwO8FJtH2XTlPL3zwAAAAAAA.U1lOVEhFVElDX09QQVFVRV9OT1RfUkVBTA\nSTATUS=公开描述段已解码 · 实验性 / 未验证\nMETADATA_ROWS=8\nCLIENT_LABEL=Client ID\nCLIENT_VALUE=c44b4083-3bb0-49c1-b47d-974e53cbdf3c\nCLIENT_NAME_ROWS=1\nSIGNATURE_VISIBLE=false\nEXTERNAL_REQUESTS=0\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "label": "UNIT",
+    "command": [
+      "C:/nvm4w/nodejs/npm.cmd",
+      "test"
+    ],
+    "cwd": "C:\\Users\\86186\\Desktop\\work\\Token_parsing\\token-inspector",
+    "input": "synthetic merge-descriptor fixture only; exact identical token printed in BASELINE/MODIFIED/ROLLBACK stdout",
+    "stdout": "\n> token-inspector@0.1.0 test\n> vitest run\n\n\n RUN  v4.1.12 C:/Users/86186/Desktop/work/Token_parsing/token-inspector\n\n\n Test Files  6 passed (6)\n      Tests  128 passed (128)\n   Start at  10:15:47\n   Duration  3.07s (transform 512ms, setup 0ms, import 1.68s, tests 2.18s, environment 1ms)\n\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "label": "TYPECHECK",
+    "command": [
+      "C:/nvm4w/nodejs/npm.cmd",
+      "run",
+      "typecheck"
+    ],
+    "cwd": "C:\\Users\\86186\\Desktop\\work\\Token_parsing\\token-inspector",
+    "input": "synthetic merge-descriptor fixture only; exact identical token printed in BASELINE/MODIFIED/ROLLBACK stdout",
+    "stdout": "\n> token-inspector@0.1.0 typecheck\n> tsc --noEmit\n\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "label": "BUILD",
+    "command": [
+      "C:/nvm4w/nodejs/npm.cmd",
+      "run",
+      "build"
+    ],
+    "cwd": "C:\\Users\\86186\\Desktop\\work\\Token_parsing\\token-inspector",
+    "input": "synthetic merge-descriptor fixture only; exact identical token printed in BASELINE/MODIFIED/ROLLBACK stdout",
+    "stdout": "\n> token-inspector@0.1.0 build\n> tsc --noEmit && vite build\n\nvite v8.3.4 building client environment for production...\ntransforming...\n✓ 61 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                  9.28 kB │ gzip:  3.44 kB\ndist/assets/index-B5YPCDEX.css   8.15 kB │ gzip:  2.67 kB\ndist/assets/index-DhH70YgS.js   61.46 kB │ gzip: 22.57 kB\n\n✓ built in 284ms\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "label": "BROWSER",
+    "command": [
+      "node",
+      "node_modules/@playwright/test/cli.js",
+      "test"
+    ],
+    "cwd": "C:\\Users\\86186\\Desktop\\work\\Token_parsing\\token-inspector",
+    "input": "synthetic merge-descriptor fixture only; exact identical token printed in BASELINE/MODIFIED/ROLLBACK stdout",
+    "stdout": "\nRunning 22 tests using 5 workers\n\n  ✓   2 tests\\browser\\purposes.spec.ts:7:1 › defaults to Access and supports accessible keyboard navigation without storage (1.9s)\n  ✓   5 tests\\browser\\values.spec.ts:6:1 › scp and roles render value chips with critical scopes highlighted (1.9s)\n  ✓   1 tests\\browser\\page.spec.ts:6:1 › offline local page, no credential traffic, safe rendering and state reset (2.5s)\n  ✓   3 tests\\browser\\refresh-structure.spec.ts:5:1 › Refresh displays only experimental public metadata without network, claims, signature or copies (3.0s)\n  ✓   7 tests\\browser\\values.spec.ts:33:1 › unknown clients and audiences stay plain while chip titles carry descriptions (948ms)\n  ✓   8 tests\\browser\\page.spec.ts:45:1 › mobile layout fits viewport (581ms)\n  ✓   4 tests\\browser\\signature.spec.ts:12:1 › automatically validates Entra signature, keeps expiry separate and sends only a public-key GET (3.6s)\n  ✓   6 tests\\browser\\purposes.spec.ts:30:1 › ID retains manual signature validation and switching clears credentials and results (1.9s)\n  ✓  11 tests\\browser\\page.spec.ts:54:1 › independent JSON and claims views, explicit clipboard writes, and clear cancels pending parsing (1.1s)\n  ✓  10 tests\\browser\\values.spec.ts:54:1 › aud shows the concrete recipient beside the original ID and in its explanation (1.3s)\n  ✓  14 tests\\browser\\page.spec.ts:88:1 › JWE, malformed input, clipboard denial and long input remain safe (984ms)\n  ✓   9 tests\\browser\\refresh-structure.spec.ts:47:1 › unsupported layouts and malformed input remove old metadata instead of guessing (2.7s)\n  ✓  12 tests\\browser\\signature.spec.ts:40:1 › manual mode revalidates on secret and algorithm changes without any network (2.1s)\n  ✓  13 tests\\browser\\purposes.spec.ts:61:1 › Refresh exposes formats and limits, never claims, copying or public-key requests (2.6s)\n  ✓  15 tests\\browser\\refresh-structure.spec.ts:71:1 › clear, tab switches and pending parsing never restore or leak descriptor fields (1.4s)\n  ✓  16 tests\\browser\\signature.spec.ts:63:1 › network errors and unavailable keys are not reported as invalid signatures (1.5s)\n  ✓  18 tests\\browser\\refresh-structure.spec.ts:100:1 › unknown clients stay unknown and JWT or HTML input is not interpreted as descriptor metadata (935ms)\n  ✓  20 tests\\browser\\refresh-structure.spec.ts:118:1 › Azure Portal name and Client ID share one field with the unverified explanation (534ms)\n  ✓  19 tests\\browser\\signature.spec.ts:72:1 › clearing during a pending key request cannot restore an old verified state (1.3s)\n  ✓  17 tests\\browser\\purposes.spec.ts:94:1 › switching cancels pending parsing and clears JWKS cache after automatic ID verification (2.7s)\n  ✓  21 tests\\browser\\purposes.spec.ts:125:1 › switching during a key request blocks late results in Refresh and the next decoder (1.9s)\n  ✓  22 tests\\browser\\purposes.spec.ts:153:1 › all purpose entries fit narrow mobile screens (443ms)\n\n  22 passed (19.2s)\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "label": "MODIFIED",
+    "command": [
+      "node",
+      "C:\\Users\\86186\\Desktop\\work\\Token_parsing\\.artifacts\\merge-probe.mjs",
+      "C:\\Users\\86186\\Desktop\\work\\Token_parsing\\token-inspector"
+    ],
+    "cwd": "C:\\Users\\86186\\Desktop\\work\\Token_parsing",
+    "input": "synthetic merge-descriptor fixture only; exact identical token printed in BASELINE/MODIFIED/ROLLBACK stdout",
+    "stdout": "INPUT=1.AQEApMXoHC1470uzpW5-UaeV-YNAS8SwO8FJtH2XTlPL3zwAAAAAAA.U1lOVEhFVElDX09QQVFVRV9OT1RfUkVBTA\nSTATUS=公开描述段已解码 · 实验性 / 未验证\nMETADATA_ROWS=7\nCLIENT_LABEL=客户端：Azure Portal\nCLIENT_VALUE=Client ID：c44b4083-3bb0-49c1-b47d-974e53cbdf3c\nCLIENT_NAME_ROWS=0\nSIGNATURE_VISIBLE=false\nEXTERNAL_REQUESTS=0\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "label": "ARCHIVE_DIFF",
+    "command": [
+      "git",
+      "diff",
+      "--binary",
+      "--no-index",
+      "--",
+      "before/snapshot.zip",
+      "after/snapshot.zip"
+    ],
+    "cwd": "C:\\Users\\86186\\Desktop\\work\\Token_parsing\\.artifacts\\token-inspector\\merge-patch",
+    "input": "synthetic merge-descriptor fixture only; exact identical token printed in BASELINE/MODIFIED/ROLLBACK stdout",
+    "stdout": "diff --git a/before/snapshot.zip b/after/snapshot.zip\nindex 88560cabff0ac8d670b945d42606efec5404c508..cfbfbfdeb213d95b79e8095b829be88ec34ddd7f 100644\nGIT binary patch\ndelta 7775\n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\nCAdIvC\n\ndelta 7439\n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\n\n",
+    "stderr": "",
+    "exit": 1
+  },
+  {
+    "label": "SOURCE_DIFF",
+    "command": [
+      "git",
+      "-c",
+      "core.autocrlf=false",
+      "diff",
+      "--no-index",
+      "--",
+      "before-source",
+      "after-source"
+    ],
+    "cwd": "C:\\Users\\86186\\Desktop\\work\\Token_parsing\\.artifacts\\token-inspector\\merge-patch",
+    "input": "synthetic merge-descriptor fixture only; exact identical token printed in BASELINE/MODIFIED/ROLLBACK stdout",
+    "stdout": "diff --git a/before-source/token-inspector/src/decoder.ts b/after-source/token-inspector/src/decoder.ts\nindex b0c20f7..d932984 100644\n--- a/before-source/token-inspector/src/decoder.ts\n+++ b/after-source/token-inspector/src/decoder.ts\n@@ -151,12 +151,12 @@ export function createDecoder() {\n     target.replaceChildren();\r\n     $('refresh-metadata').hidden = !metadata;\r\n     if (!metadata) return;\r\n+    const clientName = clientApp(metadata.clientId)?.name ?? '未知应用';\r\n     const rows = [\r\n       ['version', '版本', metadata.version, '仅支持研究样例版本 1。'],\r\n       ['descriptor_length', '描述段长度', `${metadata.descriptorBytes} 字节`, '以下偏移均从解码后的描述段第 0 字节计数。'],\r\n       ['tenant_id', 'Tenant ID', metadata.tenantId, '字节 3–18，按 .NET GUID 字节序解释；租户线索，未验证。'],\r\n-      ['client_id', 'Client ID', metadata.clientId, '字节 19–34，按 .NET GUID 字节序解释；客户端线索，未验证。'],\r\n-      ['client_name', '已知应用名', clientApp(metadata.clientId)?.name ?? '未收录，保留原始 Client ID', '静态 ID 名称匹配，不验证应用身份或权限。'],\r\n+      ['client_id', `客户端：${clientName}`, `Client ID：${metadata.clientId}`, '字节 19–34，按 .NET GUID 字节序解释。应用名为静态 ID 名称匹配；客户端线索，未验证，不验证应用身份或权限。'],\r\n       ['prefix_hex', '前缀（Hex）', metadata.prefixHex, '字节 0–2，保留原始值，不推断其语义。'],\r\n       ['trailer_hex', '尾部（Hex）', metadata.trailerHex, '字节 35–39，保留原始值，不推断其语义。'],\r\n       ['opaque_length', '不透明载荷长度', `${metadata.opaqueBytes} 字节`, '仅统计解码后的长度；未解密，不能读取其中声明或有效期。'],\r\ndiff --git a/before-source/token-inspector/tests/browser/refresh-structure.spec.ts b/after-source/token-inspector/tests/browser/refresh-structure.spec.ts\nindex 7b376bf..f5aaa8b 100644\n--- a/before-source/token-inspector/tests/browser/refresh-structure.spec.ts\n+++ b/after-source/token-inspector/tests/browser/refresh-structure.spec.ts\n@@ -17,10 +17,11 @@ test('Refresh displays only experimental public metadata without network, claims\n   await page.locator('#token').fill(`Bearer ${refreshFixture()}`);\n   await expect(page.locator('#status')).toHaveText('公开描述段已解码 · 实验性 / 未验证');\n   await expect(page.locator('#refresh-metadata')).toBeVisible();\n-  await expect(page.locator('#refresh-metadata-fields tr')).toHaveCount(8);\n+  await expect(page.locator('#refresh-metadata-fields tr')).toHaveCount(7);\n   await expect(page.locator('[data-field=\"tenant_id\"] code')).toHaveText(tenantId);\n-  await expect(page.locator('[data-field=\"client_id\"] code')).toHaveText(brokerId);\n-  await expect(page.locator('[data-field=\"client_name\"] code')).toHaveText('Microsoft Authentication Broker');\n+  await expect(page.locator('[data-field=\"client_id\"] code')).toHaveText(`Client ID：${brokerId}`);\n+  await expect(page.locator('[data-field=\"client_id\"] strong')).toHaveText('客户端：Microsoft Authentication Broker');\n+  await expect(page.locator('[data-field=\"client_name\"]')).toHaveCount(0);\n   await expect(page.locator('[data-field=\"prefix_hex\"] code')).toHaveText('010100');\n   await expect(page.locator('[data-field=\"trailer_hex\"] code')).toHaveText('0000000000');\n   await expect(page.locator('#refresh-metadata')).toContainText('未解密');\n@@ -101,8 +102,8 @@ test('unknown clients stay unknown and JWT or HTML input is not interpreted as d\n   await page.locator('#tab-refresh').click();\n   const unknown = descriptor.slice(); unknown.fill(0, 19, 35);\n   await page.locator('#token').fill(refreshFixture('1', unknown));\n-  await expect(page.locator('[data-field=\"client_name\"] code')).toContainText('未收录');\n-  await expect(page.locator('[data-field=\"client_id\"] code')).toHaveText('00000000-0000-0000-0000-000000000000');\n+  await expect(page.locator('[data-field=\"client_id\"] strong')).toHaveText('客户端：未知应用');\n+  await expect(page.locator('[data-field=\"client_id\"] code')).toHaveText('Client ID：00000000-0000-0000-0000-000000000000');\n   const cookie = `${base64url.encode('{\"alg\":\"HS256\",\"kdf_ver\":2}')}.${base64url.encode(JSON.stringify({ refresh_token: refreshFixture() }))}.AA`;\n   await page.locator('#token').fill(cookie);\n   await expect(page.locator('#status')).toContainText('格式：JWT');\n@@ -113,3 +114,18 @@ test('unknown clients stay unknown and JWT or HTML input is not interpreted as d\n   await expect(page.locator('#refresh-details img')).toHaveCount(0);\n   await expect(page.locator('#refresh-metadata-fields tr')).toHaveCount(0);\n });\n+\n+test('Azure Portal name and Client ID share one field with the unverified explanation', async ({ page }) => {\n+  await page.goto('/');\n+  await page.locator('#tab-refresh').click();\n+  const portal = descriptor.slice();\n+  portal.set(Uint8Array.from('83404bc4b03bc149b47d974e53cbdf3c'.match(/../g)!, value => parseInt(value, 16)), 19);\n+  await page.locator('#token').fill(refreshFixture('1', portal));\n+  const client = page.locator('#refresh-metadata-fields [data-field=\"client_id\"]');\n+  await expect(client.locator('strong')).toHaveText('客户端：Azure Portal');\n+  await expect(client.locator('code')).toHaveText('Client ID：c44b4083-3bb0-49c1-b47d-974e53cbdf3c');\n+  await expect(client).toContainText('静态 ID 名称匹配');\n+  await expect(client).toContainText('未验证');\n+  await expect(page.locator('#refresh-metadata-fields [data-field=\"client_name\"]')).toHaveCount(0);\n+  await expect(page.locator('#refresh-metadata-fields tr')).toHaveCount(7);\n+});\n",
+    "stderr": "",
+    "exit": 1
+  },
+  {
+    "label": "ROLLBACK_EXECUTION",
+    "command": [
+      "E:/Git/bin/bash.exe",
+      ".artifacts/token-inspector/ROLLBACK.sh",
+      ".artifacts/token-inspector/merge-rollback.zip"
+    ],
+    "cwd": "C:\\Users\\86186\\Desktop\\work\\Token_parsing",
+    "input": "synthetic merge-descriptor fixture only; exact identical token printed in BASELINE/MODIFIED/ROLLBACK stdout",
+    "stdout": "RESTORED SHA256=bf1a92164633cf2dd73f1cda41f6c4141e7c333e369580106aaec0c277fd98e8\r\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "label": "PATCH_REAPPLY",
+    "command": [
+      "git",
+      "apply",
+      "-p2",
+      "--directory=.artifacts/token-inspector/merge-reapply",
+      ".artifacts\\token-inspector\\DIFF_FILE.patch"
+    ],
+    "cwd": "C:\\Users\\86186\\Desktop\\work\\Token_parsing",
+    "input": "synthetic merge-descriptor fixture only; exact identical token printed in BASELINE/MODIFIED/ROLLBACK stdout",
+    "stdout": "",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "label": "DIFF_CHECK",
+    "command": [
+      "git",
+      "diff",
+      "--check",
+      "--",
+      "token-inspector"
+    ],
+    "cwd": "C:\\Users\\86186\\Desktop\\work\\Token_parsing",
+    "input": "synthetic merge-descriptor fixture only; exact identical token printed in BASELINE/MODIFIED/ROLLBACK stdout",
+    "stdout": "",
+    "stderr": "warning: in the working copy of 'token-inspector/index.html', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'token-inspector/src/style.css', CRLF will be replaced by LF the next time Git touches it\nwarning: in the working copy of 'token-inspector/tests/browser/page.spec.ts', CRLF will be replaced by LF the next time Git touches it\n",
+    "exit": 0
+  },
+  {
+    "label": "ROLLBACK",
+    "command": [
+      "node",
+      "C:\\Users\\86186\\Desktop\\work\\Token_parsing\\.artifacts\\merge-probe.mjs",
+      "C:\\Users\\86186\\Desktop\\work\\Token_parsing\\.artifacts\\token-inspector\\merge-rollback\\token-inspector"
+    ],
+    "cwd": "C:\\Users\\86186\\Desktop\\work\\Token_parsing",
+    "input": "synthetic merge-descriptor fixture only; exact identical token printed in BASELINE/MODIFIED/ROLLBACK stdout",
+    "stdout": "10:17:32 [vite] (client) Re-optimizing dependencies because vite config has changed\nINPUT=1.AQEApMXoHC1470uzpW5-UaeV-YNAS8SwO8FJtH2XTlPL3zwAAAAAAA.U1lOVEhFVElDX09QQVFVRV9OT1RfUkVBTA\nSTATUS=公开描述段已解码 · 实验性 / 未验证\nMETADATA_ROWS=8\nCLIENT_LABEL=Client ID\nCLIENT_VALUE=c44b4083-3bb0-49c1-b47d-974e53cbdf3c\nCLIENT_NAME_ROWS=1\nSIGNATURE_VISIBLE=false\nEXTERNAL_REQUESTS=0\n",
+    "stderr": "",
+    "exit": 0
+  },
+  {
+    "label": "LIVE_CHECK",
+    "command": [
+      "C:\\Users\\86186\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "-c",
+      "import urllib.request; o=urllib.request.build_opener(urllib.request.ProxyHandler({})); r=o.open('http://127.0.0.1:5173/',timeout=10); assert r.status==200; print('HTTP_STATUS='+str(r.status)); print('URL=http://127.0.0.1:5173/')"
+    ],
+    "cwd": "C:\\Users\\86186\\Desktop\\work\\Token_parsing",
+    "input": "synthetic merge-descriptor fixture only; exact identical token printed in BASELINE/MODIFIED/ROLLBACK stdout",
+    "stdout": "HTTP_STATUS=200\r\nURL=http://127.0.0.1:5173/\r\n",
+    "stderr": "",
+    "exit": 0
+  }
+]

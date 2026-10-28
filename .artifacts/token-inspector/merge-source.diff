@@ -1,0 +1,68 @@
+diff --git a/before-source/token-inspector/src/decoder.ts b/after-source/token-inspector/src/decoder.ts
+index b0c20f7..d932984 100644
+--- a/before-source/token-inspector/src/decoder.ts
++++ b/after-source/token-inspector/src/decoder.ts
+@@ -151,12 +151,12 @@ export function createDecoder() {
+     target.replaceChildren();
+     $('refresh-metadata').hidden = !metadata;
+     if (!metadata) return;
++    const clientName = clientApp(metadata.clientId)?.name ?? '未知应用';
+     const rows = [
+       ['version', '版本', metadata.version, '仅支持研究样例版本 1。'],
+       ['descriptor_length', '描述段长度', `${metadata.descriptorBytes} 字节`, '以下偏移均从解码后的描述段第 0 字节计数。'],
+       ['tenant_id', 'Tenant ID', metadata.tenantId, '字节 3–18，按 .NET GUID 字节序解释；租户线索，未验证。'],
+-      ['client_id', 'Client ID', metadata.clientId, '字节 19–34，按 .NET GUID 字节序解释；客户端线索，未验证。'],
+-      ['client_name', '已知应用名', clientApp(metadata.clientId)?.name ?? '未收录，保留原始 Client ID', '静态 ID 名称匹配，不验证应用身份或权限。'],
++      ['client_id', `客户端：${clientName}`, `Client ID：${metadata.clientId}`, '字节 19–34，按 .NET GUID 字节序解释。应用名为静态 ID 名称匹配；客户端线索，未验证，不验证应用身份或权限。'],
+       ['prefix_hex', '前缀（Hex）', metadata.prefixHex, '字节 0–2，保留原始值，不推断其语义。'],
+       ['trailer_hex', '尾部（Hex）', metadata.trailerHex, '字节 35–39，保留原始值，不推断其语义。'],
+       ['opaque_length', '不透明载荷长度', `${metadata.opaqueBytes} 字节`, '仅统计解码后的长度；未解密，不能读取其中声明或有效期。'],
+diff --git a/before-source/token-inspector/tests/browser/refresh-structure.spec.ts b/after-source/token-inspector/tests/browser/refresh-structure.spec.ts
+index 7b376bf..f5aaa8b 100644
+--- a/before-source/token-inspector/tests/browser/refresh-structure.spec.ts
++++ b/after-source/token-inspector/tests/browser/refresh-structure.spec.ts
+@@ -17,10 +17,11 @@ test('Refresh displays only experimental public metadata without network, claims
+   await page.locator('#token').fill(`Bearer ${refreshFixture()}`);
+   await expect(page.locator('#status')).toHaveText('公开描述段已解码 · 实验性 / 未验证');
+   await expect(page.locator('#refresh-metadata')).toBeVisible();
+-  await expect(page.locator('#refresh-metadata-fields tr')).toHaveCount(8);
++  await expect(page.locator('#refresh-metadata-fields tr')).toHaveCount(7);
+   await expect(page.locator('[data-field="tenant_id"] code')).toHaveText(tenantId);
+-  await expect(page.locator('[data-field="client_id"] code')).toHaveText(brokerId);
+-  await expect(page.locator('[data-field="client_name"] code')).toHaveText('Microsoft Authentication Broker');
++  await expect(page.locator('[data-field="client_id"] code')).toHaveText(`Client ID：${brokerId}`);
++  await expect(page.locator('[data-field="client_id"] strong')).toHaveText('客户端：Microsoft Authentication Broker');
++  await expect(page.locator('[data-field="client_name"]')).toHaveCount(0);
+   await expect(page.locator('[data-field="prefix_hex"] code')).toHaveText('010100');
+   await expect(page.locator('[data-field="trailer_hex"] code')).toHaveText('0000000000');
+   await expect(page.locator('#refresh-metadata')).toContainText('未解密');
+@@ -101,8 +102,8 @@ test('unknown clients stay unknown and JWT or HTML input is not interpreted as d
+   await page.locator('#tab-refresh').click();
+   const unknown = descriptor.slice(); unknown.fill(0, 19, 35);
+   await page.locator('#token').fill(refreshFixture('1', unknown));
+-  await expect(page.locator('[data-field="client_name"] code')).toContainText('未收录');
+-  await expect(page.locator('[data-field="client_id"] code')).toHaveText('00000000-0000-0000-0000-000000000000');
++  await expect(page.locator('[data-field="client_id"] strong')).toHaveText('客户端：未知应用');
++  await expect(page.locator('[data-field="client_id"] code')).toHaveText('Client ID：00000000-0000-0000-0000-000000000000');
+   const cookie = `${base64url.encode('{"alg":"HS256","kdf_ver":2}')}.${base64url.encode(JSON.stringify({ refresh_token: refreshFixture() }))}.AA`;
+   await page.locator('#token').fill(cookie);
+   await expect(page.locator('#status')).toContainText('格式：JWT');
+@@ -113,3 +114,18 @@ test('unknown clients stay unknown and JWT or HTML input is not interpreted as d
+   await expect(page.locator('#refresh-details img')).toHaveCount(0);
+   await expect(page.locator('#refresh-metadata-fields tr')).toHaveCount(0);
+ });
++
++test('Azure Portal name and Client ID share one field with the unverified explanation', async ({ page }) => {
++  await page.goto('/');
++  await page.locator('#tab-refresh').click();
++  const portal = descriptor.slice();
++  portal.set(Uint8Array.from('83404bc4b03bc149b47d974e53cbdf3c'.match(/../g)!, value => parseInt(value, 16)), 19);
++  await page.locator('#token').fill(refreshFixture('1', portal));
++  const client = page.locator('#refresh-metadata-fields [data-field="client_id"]');
++  await expect(client.locator('strong')).toHaveText('客户端：Azure Portal');
++  await expect(client.locator('code')).toHaveText('Client ID：c44b4083-3bb0-49c1-b47d-974e53cbdf3c');
++  await expect(client).toContainText('静态 ID 名称匹配');
++  await expect(client).toContainText('未验证');
++  await expect(page.locator('#refresh-metadata-fields [data-field="client_name"]')).toHaveCount(0);
++  await expect(page.locator('#refresh-metadata-fields tr')).toHaveCount(7);
++});

@@ -1,14 +1,16 @@
 import { decodeJwt, decodeProtectedHeader, base64url } from 'jose';
 import { identifyProvider } from './providers';
+import type { RefreshStructure } from './refresh-structure';
 
 export const MAX_INPUT_BYTES = 64 * 1024;
 export interface Field { name: string; value: unknown; description: string }
 export interface InspectionResult {
-  format: 'JWT' | 'JWE' | 'Opaque / Unknown' | 'Invalid';
+  format: 'JWT' | 'JWE' | 'Opaque / Unknown' | 'Invalid' | 'Entra RT / PRT（候选结构）';
   status: 'decoded' | 'encrypted' | 'opaque' | 'error';
   verification: 'not-performed';
   header?: Record<string, unknown>;
   claims?: Record<string, unknown>;
+  refreshStructure?: RefreshStructure;
   provider: string;
   evidence: string[];
   fields: Field[];

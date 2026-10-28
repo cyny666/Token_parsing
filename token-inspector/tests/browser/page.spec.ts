@@ -13,7 +13,7 @@ test('offline local page, no credential traffic, safe rendering and state reset'
     return new URL(url).hostname === '127.0.0.1' ? route.continue() : route.abort();
   });
   await page.goto('/');
-  await expect(page.getByRole('heading', { name: 'JSON Web Token 解码器' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Access Token 诊断工具' })).toBeVisible();
   const initialRequests = requests.length;
   await page.context().setOffline(true);
   await page.locator('#token').fill(token({ iss: 'https://login.microsoftonline.com/example/v2.0', scp: 'User.Read', exp: 1, html: '<img src=x onerror=alert(1)>', jku: 'https://example.com/key' }));
